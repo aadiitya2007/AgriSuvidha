@@ -10,7 +10,7 @@ interface AuthContextType {
   requestOtp: (phone: string) => Promise<{ demoOtp?: string }>;
   loginStaff: (email: string, passwordPlain: string) => Promise<void>;
   registerFarmer: (data: any) => Promise<void>;
-  quickDemoLogin: (type: 'farmer1' | 'farmer2' | 'operator' | 'manager' | 'admin') => Promise<void>;
+  quickDemoLogin: (type: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -83,17 +83,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(data.user);
   };
 
-  const quickDemoLogin = async (type: 'farmer1' | 'farmer2' | 'operator' | 'manager' | 'admin') => {
+  const quickDemoLogin = async (type: string) => {
     setIsLoading(true);
     try {
       if (type === 'farmer1') {
         await loginWithOtp('+91 98230 11001', '123456');
       } else if (type === 'farmer2') {
         await loginWithOtp('+91 98230 11002', '123456');
-      } else if (type === 'operator') {
+      } else if (type === 'operator' || type === 'operator-nagpur') {
         await loginStaff('operator.nagpur@krishisetu.gov.in', 'Operator@12345');
-      } else if (type === 'manager') {
+      } else if (type === 'operator-nashik') {
+        await loginStaff('operator.nashik@krishisetu.gov.in', 'Operator@12345');
+      } else if (type === 'operator-amravati') {
+        await loginStaff('operator.amravati@krishisetu.gov.in', 'Operator@12345');
+      } else if (type === 'operator-pune') {
+        await loginStaff('operator.pune@krishisetu.gov.in', 'Operator@12345');
+      } else if (type === 'manager' || type === 'manager-nagpur') {
         await loginStaff('manager.nagpur@krishisetu.gov.in', 'Manager@12345');
+      } else if (type === 'manager-nashik') {
+        await loginStaff('manager.nashik@krishisetu.gov.in', 'Manager@12345');
+      } else if (type === 'manager-amravati') {
+        await loginStaff('manager.amravati@krishisetu.gov.in', 'Manager@12345');
+      } else if (type === 'manager-pune') {
+        await loginStaff('manager.pune@krishisetu.gov.in', 'Manager@12345');
       } else if (type === 'admin') {
         await loginStaff('admin@krishisetu.gov.in', 'Admin@12345');
       }
@@ -114,18 +126,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           profile: { fullName: 'Suresh Deshmukh', village: 'Katol', district: 'Nagpur', state: 'Maharashtra', kycStatus: 'VERIFIED' },
         },
         operator: {
-          id: 'demo-operator',
+          id: 'demo-operator-nagpur',
           email: 'operator.nagpur@krishisetu.gov.in',
           role: 'CENTRE_OPERATOR',
           profile: { fullName: 'Nagpur Gate Operator' },
-          assignedCentres: [{ centreId: 'centre-1', centreName: 'Nagpur APMC Procurement Hub' }],
+          assignedCentres: [{ centreId: 'centre-1', centreName: 'Nagpur Central APMC Grain Hub' }],
+        },
+        'operator-nagpur': {
+          id: 'demo-operator-nagpur',
+          email: 'operator.nagpur@krishisetu.gov.in',
+          role: 'CENTRE_OPERATOR',
+          profile: { fullName: 'Nagpur Gate Operator' },
+          assignedCentres: [{ centreId: 'centre-1', centreName: 'Nagpur Central APMC Grain Hub' }],
+        },
+        'operator-nashik': {
+          id: 'demo-operator-nashik',
+          email: 'operator.nashik@krishisetu.gov.in',
+          role: 'CENTRE_OPERATOR',
+          profile: { fullName: 'Nashik Gate Operator' },
+          assignedCentres: [{ centreId: 'centre-2', centreName: 'Nashik Onion & Agri Yard' }],
+        },
+        'operator-amravati': {
+          id: 'demo-operator-amravati',
+          email: 'operator.amravati@krishisetu.gov.in',
+          role: 'CENTRE_OPERATOR',
+          profile: { fullName: 'Amravati Terminal Operator' },
+          assignedCentres: [{ centreId: 'centre-3', centreName: 'Amravati Cotton & Soybean Terminal' }],
+        },
+        'operator-pune': {
+          id: 'demo-operator-pune',
+          email: 'operator.pune@krishisetu.gov.in',
+          role: 'CENTRE_OPERATOR',
+          profile: { fullName: 'Pune District Operator' },
+          assignedCentres: [{ centreId: 'centre-4', centreName: 'Pune District Kisan Procurement Centre' }],
         },
         manager: {
-          id: 'demo-manager',
+          id: 'demo-manager-nagpur',
           email: 'manager.nagpur@krishisetu.gov.in',
           role: 'CENTRE_MANAGER',
           profile: { fullName: 'Nagpur Centre Manager' },
-          assignedCentres: [{ centreId: 'centre-1', centreName: 'Nagpur APMC Procurement Hub' }],
+          assignedCentres: [{ centreId: 'centre-1', centreName: 'Nagpur Central APMC Grain Hub' }],
+        },
+        'manager-nagpur': {
+          id: 'demo-manager-nagpur',
+          email: 'manager.nagpur@krishisetu.gov.in',
+          role: 'CENTRE_MANAGER',
+          profile: { fullName: 'Nagpur Centre Manager' },
+          assignedCentres: [{ centreId: 'centre-1', centreName: 'Nagpur Central APMC Grain Hub' }],
+        },
+        'manager-nashik': {
+          id: 'demo-manager-nashik',
+          email: 'manager.nashik@krishisetu.gov.in',
+          role: 'CENTRE_MANAGER',
+          profile: { fullName: 'Nashik Centre Manager' },
+          assignedCentres: [{ centreId: 'centre-2', centreName: 'Nashik Onion & Agri Yard' }],
+        },
+        'manager-amravati': {
+          id: 'demo-manager-amravati',
+          email: 'manager.amravati@krishisetu.gov.in',
+          role: 'CENTRE_MANAGER',
+          profile: { fullName: 'Amravati Centre Manager' },
+          assignedCentres: [{ centreId: 'centre-3', centreName: 'Amravati Cotton & Soybean Terminal' }],
+        },
+        'manager-pune': {
+          id: 'demo-manager-pune',
+          email: 'manager.pune@krishisetu.gov.in',
+          role: 'CENTRE_MANAGER',
+          profile: { fullName: 'Pune Centre Manager' },
+          assignedCentres: [{ centreId: 'centre-4', centreName: 'Pune District Kisan Procurement Centre' }],
         },
         admin: {
           id: 'demo-admin',

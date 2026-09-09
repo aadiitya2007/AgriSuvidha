@@ -471,6 +471,28 @@ let mockProcurementRecords: any[] = [
     };
   }
 
+  if (endpoint.startsWith('/bookings/slots')) {
+    const query = endpoint.includes('?') ? endpoint.split('?')[1] : '';
+    const params = new URLSearchParams(query);
+    const date = params.get('date') || todayStr;
+    const cid = params.get('centreId') || 'centre-1';
+    return {
+      centre: {
+        id: cid,
+        name: 'Regional APMC Hub',
+        operationalStatus: 'OPERATIONAL',
+        hasActiveOutage: false,
+      },
+      slots: [
+        { id: `${cid}-s1`, slotDate: date, startTime: '08:30 AM', endTime: '10:00 AM', maxCapacity: 15, bookedCapacity: 2, remainingCapacity: 13, isAvailable: true },
+        { id: `${cid}-s2`, slotDate: date, startTime: '10:00 AM', endTime: '11:30 AM', maxCapacity: 15, bookedCapacity: 4, remainingCapacity: 11, isAvailable: true },
+        { id: `${cid}-s3`, slotDate: date, startTime: '11:30 AM', endTime: '01:00 PM', maxCapacity: 15, bookedCapacity: 1, remainingCapacity: 14, isAvailable: true },
+        { id: `${cid}-s4`, slotDate: date, startTime: '01:30 PM', endTime: '03:00 PM', maxCapacity: 15, bookedCapacity: 0, remainingCapacity: 15, isAvailable: true },
+        { id: `${cid}-s5`, slotDate: date, startTime: '03:00 PM', endTime: '04:30 PM', maxCapacity: 15, bookedCapacity: 0, remainingCapacity: 15, isAvailable: true },
+      ],
+    };
+  }
+
   if (endpoint.includes('/cancel')) {
     const parts = endpoint.split('/');
     const bookingId = parts[2];

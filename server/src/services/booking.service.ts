@@ -62,6 +62,46 @@ export class BookingService {
       orderBy: { startTime: 'asc' },
     });
 
+    let activeSlots = [...slots];
+    if (activeSlots.length === 0 && !hasActiveOutage) {
+      const standardSlotTimes = [
+        { start: '08:30 AM', end: '10:00 AM' },
+        { start: '10:00 AM', end: '11:30 AM' },
+        { start: '11:30 AM', end: '01:00 PM' },
+        { start: '01:30 PM', end: '03:00 PM' },
+        { start: '03:00 PM', end: '04:30 PM' },
+      ];
+
+      for (const t of standardSlotTimes) {
+        try {
+          const newSlot = await prisma.slot.upsert({
+            where: {
+              centreId_commodityId_slotDate_startTime: {
+                centreId,
+                commodityId,
+                slotDate: dateStr,
+                startTime: t.start,
+              },
+            },
+            update: {},
+            create: {
+              centreId,
+              commodityId,
+              slotDate: dateStr,
+              startTime: t.start,
+              endTime: t.end,
+              maxCapacity: 15,
+              bookedCapacity: 0,
+            },
+          });
+          activeSlots.push(newSlot);
+        } catch (e) {
+          // ignore concurrent upsert
+        }
+      }
+      activeSlots.sort((a, b) => a.startTime.localeCompare(b.startTime));
+    }
+
     return {
       centre: {
         id: centre.id,
@@ -70,16 +110,20 @@ export class BookingService {
         hasActiveOutage,
         outageNotice: centre.incidents[0]?.impactStatement || centre.statusNotice,
       },
-      slots: slots.map((s) => ({
-        id: s.id,
-        slotDate: s.slotDate,
-        startTime: s.startTime,
-        endTime: s.endTime,
-        maxCapacity: s.maxCapacity,
-        bookedCapacity: s.bookedCapacity,
-        remainingCapacity: Math.max(0, s.maxCapacity - s.bookedCapacity),
-        isAvailable: !hasActiveOutage && !s.isLocked && s.bookedCapacity < s.maxCapacity,
-      })),
+      slots: activeSlots.map((s) => {
+        const slotDateTime = parseSlotDateTime(s.slotDate, s.startTime);
+        const isPassed = slotDateTime ? new Date() >= slotDateTime : false;
+        return {
+          id: s.id,
+          slotDate: s.slotDate,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          maxCapacity: s.maxCapacity,
+          bookedCapacity: s.bookedCapacity,
+          remainingCapacity: Math.max(0, s.maxCapacity - s.bookedCapacity),
+          isAvailable: !hasActiveOutage && !s.isLocked && s.bookedCapacity < s.maxCapacity && !isPassed,
+        };
+      }),
     };
   }
 

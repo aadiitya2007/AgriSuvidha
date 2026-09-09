@@ -19,6 +19,7 @@ import {
   Truck,
   RotateCw,
   Radio,
+  Building,
 } from 'lucide-react';
 
 export const LiveQueueOperationsPage: React.FC = () => {
@@ -37,19 +38,16 @@ export const LiveQueueOperationsPage: React.FC = () => {
   });
 
   const assigned = (user as any)?.assignedCentres?.[0]?.centreId || (user as any)?.staffAssignments?.[0]?.centreId;
-  const isPlatformAdmin = user?.role === 'PLATFORM_ADMIN';
 
   React.useEffect(() => {
-    if (assigned && (!selectedCentreId || !isPlatformAdmin)) {
+    if (assigned && !selectedCentreId) {
       setSelectedCentreId(assigned);
     } else if (!selectedCentreId && centres.length > 0) {
       setSelectedCentreId(centres[0].id);
     }
-  }, [centres, user, assigned, isPlatformAdmin]);
+  }, [centres, user, assigned, selectedCentreId]);
 
-  const visibleCentres = isPlatformAdmin || !assigned
-    ? centres
-    : centres.filter((c) => c.id === assigned);
+  const visibleCentres = centres;
 
   // Fetch Queue Entries
   const { data: queueData, refetch } = useQuery<{
@@ -171,6 +169,37 @@ export const LiveQueueOperationsPage: React.FC = () => {
             </Select>
           </div>
         </div>
+      </div>
+
+      {/* Regional Centre Quick Switcher Bar */}
+      <div className="flex flex-wrap items-center gap-2 p-2 bg-slate-100/90 rounded-2xl border border-slate-200 shadow-2xs">
+        <span className="text-[11px] font-bold text-slate-500 px-2 flex items-center gap-1.5">
+          <Building className="w-3.5 h-3.5 text-emerald-600" />
+          Mandi Region:
+        </span>
+        {centres.map((c) => {
+          const isSelected = c.id === selectedCentreId;
+          return (
+            <button
+              key={c.id}
+              onClick={() => setSelectedCentreId(c.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                isSelected
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              }`}
+            >
+              <span>{c.district} APMC</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  isSelected ? 'bg-emerald-800 text-emerald-100' : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                {c.code}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {statusMessage && <Alert variant="success">{statusMessage}</Alert>}

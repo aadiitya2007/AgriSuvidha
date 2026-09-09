@@ -109,14 +109,14 @@ export const AuthPage: React.FC = () => {
     }
   };
 
-  const handleDemoSwitch = async (roleKey: 'farmer1' | 'farmer2' | 'operator' | 'manager' | 'admin') => {
+  const handleDemoSwitch = async (roleKey: string) => {
     setError(null);
     setLoading(true);
     try {
       await quickDemoLogin(roleKey);
-      if (roleKey === 'operator') {
+      if (roleKey.startsWith('operator')) {
         navigate('/admin/queue');
-      } else if (roleKey === 'manager') {
+      } else if (roleKey.startsWith('manager')) {
         navigate('/admin/procurement');
       } else if (roleKey === 'admin') {
         navigate('/admin');
@@ -392,27 +392,96 @@ export const AuthPage: React.FC = () => {
 
           {/* 3. Staff Login */}
           {mode === 'staff' && (
-            <form onSubmit={handleStaffLogin} className="space-y-4">
-              <Input
-                label="Staff Official Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="operator.nagpur@krishisetu.gov.in"
-                required
-              />
-              <Input
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
-              <Button type="submit" isLoading={loading} className="w-full bg-slate-900 hover:bg-slate-800">
-                Sign In to Staff Desk
-              </Button>
-            </form>
+            <div className="space-y-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-sky-600" />
+                  Quick Regional Staff Login (1-Click):
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {[
+                    {
+                      name: 'Nagpur Central Hub',
+                      opEmail: 'operator.nagpur@krishisetu.gov.in',
+                      mgrEmail: 'manager.nagpur@krishisetu.gov.in',
+                      opKey: 'operator-nagpur',
+                      mgrKey: 'manager-nagpur',
+                    },
+                    {
+                      name: 'Nashik Onion Yard',
+                      opEmail: 'operator.nashik@krishisetu.gov.in',
+                      mgrEmail: 'manager.nashik@krishisetu.gov.in',
+                      opKey: 'operator-nashik',
+                      mgrKey: 'manager-nashik',
+                    },
+                    {
+                      name: 'Amravati Cotton APMC',
+                      opEmail: 'operator.amravati@krishisetu.gov.in',
+                      mgrEmail: 'manager.amravati@krishisetu.gov.in',
+                      opKey: 'operator-amravati',
+                      mgrKey: 'manager-amravati',
+                    },
+                    {
+                      name: 'Pune Kisan Centre',
+                      opEmail: 'operator.pune@krishisetu.gov.in',
+                      mgrEmail: 'manager.pune@krishisetu.gov.in',
+                      opKey: 'operator-pune',
+                      mgrKey: 'manager-pune',
+                    },
+                  ].map((c) => (
+                    <div key={c.name} className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs space-y-1.5">
+                      <div className="font-semibold text-slate-800 text-[11px] truncate">{c.name}</div>
+                      <div className="flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmail(c.opEmail);
+                            setPassword('Operator@12345');
+                            handleDemoSwitch(c.opKey);
+                          }}
+                          className="flex-1 py-1 px-1.5 bg-sky-50 hover:bg-sky-100 text-sky-800 rounded font-medium text-[10px] border border-sky-200 transition-colors text-center cursor-pointer active:scale-95"
+                        >
+                          🔍 Operator
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmail(c.mgrEmail);
+                            setPassword('Manager@12345');
+                            handleDemoSwitch(c.mgrKey);
+                          }}
+                          className="flex-1 py-1 px-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded font-medium text-[10px] border border-amber-200 transition-colors text-center cursor-pointer active:scale-95"
+                        >
+                          💼 Manager
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <form onSubmit={handleStaffLogin} className="space-y-4">
+                <Input
+                  label="Staff Official Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="operator.nagpur@krishisetu.gov.in"
+                  required
+                />
+                <Input
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+                <Button type="submit" isLoading={loading} className="w-full bg-slate-900 hover:bg-slate-800">
+                  Sign In to Staff Desk
+                </Button>
+              </form>
+            </div>
           )}
         </Card>
       </div>

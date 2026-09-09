@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { ProcurementRecord, Booking } from '../../types';
+import { ProcurementRecord, Booking, Centre } from '../../types';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -21,6 +21,7 @@ import {
   AlertCircle,
   CheckCheck,
   Filter,
+  Building,
 } from 'lucide-react';
 
 export const ProcurementInspectionPage: React.FC = () => {
@@ -30,6 +31,23 @@ export const ProcurementInspectionPage: React.FC = () => {
   const [selectedReceipt, setSelectedReceipt] = useState<ProcurementRecord | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
+  const [selectedCentreId, setSelectedCentreId] = useState<string>('');
+
+  // Fetch Centres
+  const { data: centres = [] } = useQuery<Centre[]>({
+    queryKey: ['centres'],
+    queryFn: () => apiRequest('/centres'),
+  });
+
+  const assigned = (user as any)?.assignedCentres?.[0]?.centreId || (user as any)?.staffAssignments?.[0]?.centreId;
+
+  React.useEffect(() => {
+    if (assigned && !selectedCentreId) {
+      setSelectedCentreId(assigned);
+    } else if (!selectedCentreId && centres.length > 0) {
+      setSelectedCentreId(centres[0].id);
+    }
+  }, [centres, user, assigned, selectedCentreId]);
 
   // New Inspection Form State
   const [bookingId, setBookingId] = useState('');
@@ -42,15 +60,17 @@ export const ProcurementInspectionPage: React.FC = () => {
 
   // Fetch checked-in bookings eligible for inspection
   const { data: bookings = [], refetch: refetchBookings } = useQuery<Booking[]>({
-    queryKey: ['inspectable-bookings'],
-    queryFn: () => apiRequest('/bookings/my-bookings'),
+    queryKey: ['inspectable-bookings', selectedCentreId],
+    queryFn: () =>
+      apiRequest(`/bookings/my-bookings${selectedCentreId ? `?centreId=${selectedCentreId}` : ''}`),
     refetchInterval: 3000,
   });
 
   // Fetch all procurement records with real-time sync
   const { data: records = [], refetch } = useQuery<ProcurementRecord[]>({
-    queryKey: ['admin-procurements'],
-    queryFn: () => apiRequest('/procurement'),
+    queryKey: ['admin-procurements', selectedCentreId],
+    queryFn: () =>
+      apiRequest(`/procurement${selectedCentreId ? `?centreId=${selectedCentreId}` : ''}`),
     refetchInterval: 3000,
   });
 
@@ -153,6 +173,37 @@ export const ProcurementInspectionPage: React.FC = () => {
             Record electronic weighbridge measurements, automated moisture grading, and manager approvals.
           </p>
         </div>
+      </div>
+
+      {/* Regional Centre Quick Switcher Bar */}
+      <div className="flex flex-wrap items-center gap-2 p-2 bg-slate-100/90 rounded-2xl border border-slate-200 shadow-2xs">
+        <span className="text-[11px] font-bold text-slate-500 px-2 flex items-center gap-1.5">
+          <Building className="w-3.5 h-3.5 text-emerald-600" />
+          Mandi Region:
+        </span>
+        {centres.map((c) => {
+          const isSelected = c.id === selectedCentreId;
+          return (
+            <button
+              key={c.id}
+              onClick={() => setSelectedCentreId(c.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                isSelected
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              }`}
+            >
+              <span>{c.district} APMC</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  isSelected ? 'bg-emerald-800 text-emerald-100' : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                {c.code}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {statusMessage && <Alert variant="info">{statusMessage}</Alert>}

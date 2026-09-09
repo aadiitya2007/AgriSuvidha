@@ -80,6 +80,51 @@ async function main() {
     },
   });
 
+  const managerNashik = await prisma.user.create({
+    data: {
+      phone: '+91 99000 00012',
+      email: 'manager.nashik@krishisetu.gov.in',
+      passwordHash: managerPasswordHash,
+      role: Role.CENTRE_MANAGER,
+    },
+  });
+
+  const operatorAmravati = await prisma.user.create({
+    data: {
+      phone: '+91 99000 00005',
+      email: 'operator.amravati@krishisetu.gov.in',
+      passwordHash: operatorPasswordHash,
+      role: Role.CENTRE_OPERATOR,
+    },
+  });
+
+  const managerAmravati = await prisma.user.create({
+    data: {
+      phone: '+91 99000 00013',
+      email: 'manager.amravati@krishisetu.gov.in',
+      passwordHash: managerPasswordHash,
+      role: Role.CENTRE_MANAGER,
+    },
+  });
+
+  const operatorPune = await prisma.user.create({
+    data: {
+      phone: '+91 99000 00006',
+      email: 'operator.pune@krishisetu.gov.in',
+      passwordHash: operatorPasswordHash,
+      role: Role.CENTRE_OPERATOR,
+    },
+  });
+
+  const managerPune = await prisma.user.create({
+    data: {
+      phone: '+91 99000 00014',
+      email: 'manager.pune@krishisetu.gov.in',
+      passwordHash: managerPasswordHash,
+      role: Role.CENTRE_MANAGER,
+    },
+  });
+
   // 2. Create Centres
   const nagpurCentre = await prisma.centre.create({
     data: {
@@ -162,7 +207,12 @@ async function main() {
     data: [
       { centreId: nagpurCentre.id, userId: managerNagpur.id, role: Role.CENTRE_MANAGER },
       { centreId: nagpurCentre.id, userId: operatorNagpur.id, role: Role.CENTRE_OPERATOR },
+      { centreId: nashikCentre.id, userId: managerNashik.id, role: Role.CENTRE_MANAGER },
       { centreId: nashikCentre.id, userId: operatorNashik.id, role: Role.CENTRE_OPERATOR },
+      { centreId: amravatiCentre.id, userId: managerAmravati.id, role: Role.CENTRE_MANAGER },
+      { centreId: amravatiCentre.id, userId: operatorAmravati.id, role: Role.CENTRE_OPERATOR },
+      { centreId: puneCentre.id, userId: managerPune.id, role: Role.CENTRE_MANAGER },
+      { centreId: puneCentre.id, userId: operatorPune.id, role: Role.CENTRE_OPERATOR },
     ],
   });
 
@@ -291,11 +341,14 @@ async function main() {
     createdFarmers.push({ ...user, primaryCrop: f.crop });
   }
 
-  // 5. Create Time Slots (Today and Tomorrow)
+  // 5. Create Time Slots (7-Day Rolling Horizon)
   const todayStr = new Date().toISOString().split('T')[0];
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  const seedDates: string[] = [];
+  for (let i = 0; i <= 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    seedDates.push(d.toISOString().split('T')[0]);
+  }
 
   const slotTimes = [
     { start: '08:30 AM', end: '10:00 AM' },
@@ -308,7 +361,7 @@ async function main() {
   const createdSlots: any[] = [];
   for (const centre of [nagpurCentre, nashikCentre, amravatiCentre, puneCentre]) {
     for (const commodity of Object.values(createdCommodities)) {
-      for (const dateStr of [todayStr, tomorrowStr]) {
+      for (const dateStr of seedDates) {
         for (const t of slotTimes) {
           const slot = await prisma.slot.create({
             data: {
