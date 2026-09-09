@@ -25,6 +25,12 @@ export const isPortOpen = (port: number, host = '127.0.0.1'): Promise<boolean> =
 };
 
 export const ensurePostgresRunning = async (): Promise<void> => {
+  const dbUrl = process.env.DATABASE_URL || '';
+  if (dbUrl && !dbUrl.includes('localhost') && !dbUrl.includes('127.0.0.1')) {
+    logger.info('Remote cloud PostgreSQL DATABASE_URL detected. Skipping local postgres check.');
+    return;
+  }
+
   const port = 5432;
   const alreadyRunning = await isPortOpen(port);
 

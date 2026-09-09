@@ -40,4 +40,4 @@ COPY --from=client-builder /app/client/dist ./public
 
 EXPOSE 5001
 
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/server.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && (node dist/prisma/seed.js || true) && node dist/server.js"]
