@@ -273,9 +273,12 @@ export const LiveQueueOperationsPage: React.FC = () => {
           onClose={() => setScannerOpen(false)}
           centreId={selectedCentreId}
           onVerified={(data) => {
-            setStatusMessage(`Verified booking ${data.booking?.reference}! Token ${data.queueToken} issued.`);
+            const token = data?.queueToken || (data?.order?.orderNumber ? `ORD-${data.order.orderNumber}` : 'TK-001');
+            const farmer = data?.booking?.farmerName || data?.order?.farmerName || 'Farmer';
+            const ref = data?.booking?.reference || data?.order?.orderNumber || 'Pass';
+            setStatusMessage(`✅ Gate Check-In Verified for ${farmer} (${ref})! Allocated Token ${token} to Weighbridge.`);
             queryClient.invalidateQueries({ queryKey: ['admin-queue', selectedCentreId] });
-            setTimeout(() => setStatusMessage(null), 4000);
+            setTimeout(() => setStatusMessage(null), 6000);
           }}
         />
       )}

@@ -278,6 +278,22 @@ function getMockFallback(endpoint: string, options: RequestInit = {}): any {
     };
   }
 
+  if (endpoint.startsWith('/verification')) {
+    return {
+      verified: true,
+      booking: {
+        id: 'b-1',
+        reference: 'KS-2026-NGP-001',
+        farmerName: 'Rameshwar Patil',
+        farmerPhone: '+91 98230 11001',
+        commodityName: 'Soyabean',
+        estimatedQuantity: 50.0,
+      },
+      queueToken: 'TK-001',
+      message: 'Farmer Rameshwar Patil (KS-2026-NGP-001) verified! Token TK-001 issued to Gate 1 Weighbridge.',
+    };
+  }
+
   return { success: true, message: 'Simulated operation completed successfully.' };
 }
 

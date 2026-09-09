@@ -156,19 +156,23 @@ export const AppContent: React.FC = () => {
   );
 };
 
+import { ErrorBoundary } from './components/ErrorBoundary';
+
 export const App: React.FC = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <LanguageProvider>
-        <AuthProvider>
-          <NotificationProvider>
-            <BrowserRouter>
-              <AppContent />
-            </BrowserRouter>
-          </NotificationProvider>
-        </AuthProvider>
-      </LanguageProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <LanguageProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              <BrowserRouter>
+                <AppContent />
+              </BrowserRouter>
+            </NotificationProvider>
+          </AuthProvider>
+        </LanguageProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 
