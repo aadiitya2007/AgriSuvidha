@@ -1,0 +1,24 @@
+{
+  "name": "krishisetu",
+  "version": "1.0.0",
+  "description": "KrishiSetu: Full-Stack Digital Farmer Procurement and Collection Platform (SHI26032)",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "setup": "npm install && npm --prefix server install && npm --prefix client install && npm --prefix server run db:generate",
+    "dev": "concurrently -k -n \"API,WEB\" -c \"cyan,green\" \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "build": "npm --prefix server run build && npm --prefix client run build",
+    "start": "npm --prefix server run start",
+    "start:all": "concurrently -k -n \"API,WEB\" -c \"cyan,green\" \"npm --prefix server run start\" \"npm --prefix client run preview\"",
+    "test": "npm --prefix server run test",
+    "db:generate": "npm --prefix server run db:generate",
+    "db:push": "npm --prefix server run db:push",
+    "db:seed": "npm --prefix server run db:seed"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

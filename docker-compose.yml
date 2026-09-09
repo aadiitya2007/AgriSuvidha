@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: krishisetu_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: krishisetu
+      POSTGRES_PASSWORD: krishisetu_secret
+      POSTGRES_DB: krishisetu_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U krishisetu -d krishisetu_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  krishisetu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: krishisetu_app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 5001
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://krishisetu:krishisetu_secret@postgres:5432/krishisetu_db?schema=public"
+      JWT_SECRET: "krishisetu_super_secret_jwt_access_key_2026_shi26032"
+      JWT_REFRESH_SECRET: "krishisetu_super_secret_jwt_refresh_key_2026_shi26032"
+      QR_SIGNING_SECRET: "krishisetu_qr_crypto_hmac_secret_key_9981"
+    ports:
+      - "5001:5001"
+
+volumes:
+  postgres_data:

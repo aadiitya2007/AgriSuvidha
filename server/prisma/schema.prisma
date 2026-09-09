@@ -1,0 +1,677 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  FARMER
+  CENTRE_OPERATOR
+  CENTRE_MANAGER
+  PLATFORM_ADMIN
+}
+
+enum OperationalStatus {
+  OPERATIONAL
+  LIMITED_SERVICE
+  TEMPORARILY_CLOSED
+  SYSTEM_OUTAGE
+  LOGISTICS_DELAYED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum QueueStatus {
+  WAITING
+  CALLED
+  IN_INSPECTION
+  SERVED
+  NO_SHOW
+  CANCELLED
+}
+
+enum QualityGrade {
+  GRADE_A
+  GRADE_B
+  GRADE_C
+  REJECTED
+}
+
+enum ProcurementStatus {
+  SUBMITTED
+  UNDER_INSPECTION
+  APPROVED
+  REJECTED
+  PAYMENT_INITIATED
+  PAID
+}
+
+enum PaymentStatus {
+  PENDING
+  INITIATED
+  SUCCESS
+  FAILED
+}
+
+enum PaymentMode {
+  BANK_TRANSFER_NEFT
+  UPI
+  DIRECT_BENEFIT_TRANSFER
+}
+
+enum TokenType {
+  COLLECTION_OTP
+  COLLECTION_QR
+}
+
+enum IncidentType {
+  SERVER_OUTAGE
+  CONNECTIVITY_ISSUE
+  POWER_OUTAGE
+  STAFF_SHORTAGE
+  LOGISTICS_DELAY
+  STOCK_OUTAGE
+  EMERGENCY_CLOSURE
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  ACTIVE
+  INVESTIGATING
+  MITIGATED
+  RESOLVED
+}
+
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  READY_FOR_PICKUP
+  FULFILLED
+  CANCELLED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_FARMER
+  RESOLVED
+  CLOSED
+}
+
+enum NotificationCategory {
+  SLOT
+  QUEUE
+  PROCUREMENT
+  PAYMENT
+  INCIDENT
+  ORDER
+  SUPPORT
+  SYSTEM
+}
+
+model User {
+  id              String           @id @default(uuid())
+  phone           String           @unique
+  email           String?          @unique
+  passwordHash    String?
+  role            Role             @default(FARMER)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  farmerProfile   FarmerProfile?
+  staffAssignments CentreStaffAssignment[]
+  bookings        Booking[]
+  queueEntries    QueueEntry[]
+  procurements    ProcurementRecord[] @relation("FarmerProcurements")
+  operatorProcurements ProcurementRecord[] @relation("OperatorProcurements")
+  managerProcurements ProcurementRecord[] @relation("ManagerProcurements")
+  payments        Payment[]
+  tokens          VerificationToken[]
+  notifications   Notification[]
+  notificationPref NotificationPreference?
+  reportedIncidents Incident[]
+  incidentUpdates IncidentUpdate[]
+  carts           Cart[]
+  orders          Order[]
+  tickets         SupportTicket[]
+  ticketComments  TicketComment[]
+  feedbacks       Feedback[]
+  auditLogs       AuditLog[]
+  refreshTokens   RefreshToken[]
+
+  @@index([phone])
+  @@index([role])
+}
+
+model FarmerProfile {
+  id                      String   @id @default(uuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName                String
+  village                 String
+  district                String
+  state                   String
+  pincode                 String
+  farmSizeAcres           Float    @default(2.5)
+  preferredLanguage       String   @default("en")
+  farmerRegistrationNumber String  @default("MH-FARM-9982")
+  bankAccountNumber       String  @default("XXXX-XXXX-4589")
+  bankIfsc                String  @default("SBIN0001234")
+  consentCommunications   Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([district, state])
+}
+
+model Centre {
+  id                String            @id @default(uuid())
+  name              String
+  code              String            @unique
+  district          String
+  state             String
+  pincode           String
+  address           String
+  latitude          Float
+  longitude         Float
+  operatingHours    String            @default("08:00 AM - 05:00 PM")
+  dailyCapacity     Int               @default(100)
+  operationalStatus OperationalStatus @default(OPERATIONAL)
+  statusNotice      String?
+  phone             String
+  email             String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  staffAssignments  CentreStaffAssignment[]
+  centreCommodities CentreCommodity[]
+  slots             Slot[]
+  bookings          Booking[]
+  queueEntries      QueueEntry[]
+  procurements      ProcurementRecord[]
+  payments          Payment[]
+  tokens            VerificationToken[]
+  incidents         Incident[]
+  inventoryItems    InventoryItem[]
+  orders            Order[]
+  tickets           SupportTicket[]
+  feedbacks         Feedback[]
+
+  @@index([district, operationalStatus])
+  @@index([pincode])
+}
+
+model CentreStaffAssignment {
+  id        String   @id @default(uuid())
+  centreId  String
+  userId    String
+  role      Role
+  createdAt DateTime @default(now())
+
+  centre    Centre   @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([centreId, userId])
+}
+
+model Commodity {
+  id                  String            @id @default(uuid())
+  name                String            @unique
+  code                String            @unique
+  category            String
+  minMspPrice         Float
+  unit                String            @default("Quintal")
+  qualityGradingSpecs String
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  centreCommodities   CentreCommodity[]
+  slots               Slot[]
+  bookings            Booking[]
+  procurements        ProcurementRecord[]
+}
+
+model CentreCommodity {
+  id          String    @id @default(uuid())
+  centreId    String
+  commodityId String
+  isAccepted  Boolean   @default(true)
+  dailyQuota  Float     @default(500)
+
+  centre      Centre    @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  commodity   Commodity @relation(fields: [commodityId], references: [id], onDelete: Cascade)
+
+  @@unique([centreId, commodityId])
+}
+
+model Slot {
+  id             String    @id @default(uuid())
+  centreId       String
+  commodityId    String
+  slotDate       String
+  startTime      String
+  endTime        String
+  maxCapacity    Int       @default(15)
+  bookedCapacity Int       @default(0)
+  isLocked       Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  centre         Centre    @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  commodity      Commodity @relation(fields: [commodityId], references: [id], onDelete: Cascade)
+  bookings       Booking[]
+
+  @@unique([centreId, commodityId, slotDate, startTime])
+  @@index([centreId, slotDate])
+}
+
+model Booking {
+  id                 String         @id @default(uuid())
+  bookingReference   String         @unique
+  farmerId           String
+  slotId             String
+  centreId           String
+  commodityId        String
+  estimatedQuantity  Float
+  status             BookingStatus  @default(CONFIRMED)
+  idempotencyKey     String?        @unique
+  cancellationReason String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  farmer             User           @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  slot               Slot           @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  centre             Centre         @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  commodity          Commodity      @relation(fields: [commodityId], references: [id], onDelete: Cascade)
+  queueEntry         QueueEntry?
+  procurementRecord  ProcurementRecord?
+  verificationTokens VerificationToken[]
+
+  @@index([farmerId, status])
+  @@index([centreId, status])
+}
+
+model QueueEntry {
+  id                   String      @id @default(uuid())
+  centreId             String
+  bookingId            String      @unique
+  farmerId             String
+  tokenNumber          Int
+  tokenDisplay         String
+  status               QueueStatus @default(WAITING)
+  peopleAhead          Int         @default(0)
+  estimatedWaitMinutes Int         @default(15)
+  calledAt             DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  centre               Centre      @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  booking              Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  farmer               User        @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  @@index([centreId, status])
+}
+
+model ProcurementRecord {
+  id                    String            @id @default(uuid())
+  bookingId             String            @unique
+  centreId              String
+  farmerId              String
+  commodityId           String
+  operatorId            String?
+  managerId             String?
+  receiptNumber         String            @unique
+  submittedWeight       Float
+  acceptedWeight        Float             @default(0)
+  rejectedWeight        Float             @default(0)
+  unit                  String            @default("Quintal")
+  qualityGrade          QualityGrade      @default(GRADE_A)
+  moistureContent       Float             @default(12.0)
+  foreignMatterPercent  Float             @default(1.0)
+  ratePerUnit           Float
+  grossPayable          Float
+  deductions            Float             @default(0)
+  netPayable            Float
+  deductionReason       String?
+  status                ProcurementStatus @default(SUBMITTED)
+  inspectionNotes       String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  booking               Booking           @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  centre                Centre            @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  farmer                User              @relation("FarmerProcurements", fields: [farmerId], references: [id], onDelete: Cascade)
+  commodity             Commodity         @relation(fields: [commodityId], references: [id], onDelete: Cascade)
+  operator              User?             @relation("OperatorProcurements", fields: [operatorId], references: [id])
+  manager               User?             @relation("ManagerProcurements", fields: [managerId], references: [id])
+  lineItems             ProcurementLineItem[]
+  payment               Payment?
+
+  @@index([farmerId, status])
+  @@index([centreId, status])
+}
+
+model ProcurementLineItem {
+  id                  String            @id @default(uuid())
+  procurementRecordId String
+  bagBatchNumber      String
+  bagCount            Int
+  grossWeightKg       Float
+  tareWeightKg        Float
+  netWeightKg         Float
+  sampleQualityGrade  QualityGrade      @default(GRADE_A)
+
+  procurementRecord   ProcurementRecord @relation(fields: [procurementRecordId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id                   String            @id @default(uuid())
+  procurementId        String            @unique
+  farmerId             String
+  centreId             String
+  amount               Float
+  currency             String            @default("INR")
+  paymentMode          PaymentMode       @default(BANK_TRANSFER_NEFT)
+  transactionReference String?           @unique
+  status               PaymentStatus     @default(PENDING)
+  paidAt               DateTime?
+  failureReason        String?
+  idempotencyKey       String?           @unique
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  procurement          ProcurementRecord @relation(fields: [procurementId], references: [id], onDelete: Cascade)
+  farmer               User              @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  centre               Centre            @relation(fields: [centreId], references: [id], onDelete: Cascade)
+
+  @@index([farmerId, status])
+  @@index([centreId, status])
+}
+
+model VerificationToken {
+  id            String    @id @default(uuid())
+  tokenType     TokenType
+  codeHash      String
+  displayCode   String
+  bookingId     String
+  farmerId      String
+  centreId      String
+  expiresAt     DateTime
+  isUsed        Boolean   @default(false)
+  usedAt        DateTime?
+  usedByUserId  String?
+  createdAt     DateTime  @default(now())
+
+  booking       Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  farmer        User      @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  centre        Centre    @relation(fields: [centreId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, isUsed])
+  @@index([codeHash])
+}
+
+model Notification {
+  id        String               @id @default(uuid())
+  userId    String
+  title     String
+  body      String
+  category  NotificationCategory @default(SYSTEM)
+  actionUrl String?
+  isRead    Boolean              @default(false)
+  readAt    DateTime?
+  createdAt DateTime             @default(now())
+
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
+
+model NotificationPreference {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  inAppEnabled  Boolean  @default(true)
+  smsEnabled    Boolean  @default(true)
+  emailEnabled  Boolean  @default(true)
+  pushEnabled   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Incident {
+  id                    String           @id @default(uuid())
+  centreId              String
+  title                 String
+  incidentType          IncidentType
+  severity              IncidentSeverity @default(MEDIUM)
+  impactStatement       String
+  status                IncidentStatus   @default(ACTIVE)
+  affectedBookingsCount Int              @default(0)
+  expectedRecoveryTime  DateTime?
+  pauseBookings         Boolean          @default(true)
+  reportedByUserId      String
+  resolvedAt            DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  centre                Centre           @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  reportedBy            User             @relation(fields: [reportedByUserId], references: [id], onDelete: Cascade)
+  updates               IncidentUpdate[]
+
+  @@index([centreId, status])
+}
+
+model IncidentUpdate {
+  id         String   @id @default(uuid())
+  incidentId String
+  userId     String
+  message    String
+  createdAt  DateTime @default(now())
+
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ProductCategory {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  products    Product[]
+}
+
+model Product {
+  id               String          @id @default(uuid())
+  categoryId       String
+  name             String
+  description      String
+  price            Float
+  unit             String          @default("Bag")
+  stockQuantity    Int             @default(100)
+  minOrderQuantity Int             @default(1)
+  imageUrl         String?
+  isActive         Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  category         ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  cartItems        CartItem[]
+  orderItems       OrderItem[]
+  inventoryItems   InventoryItem[]
+
+  @@index([categoryId])
+}
+
+model InventoryItem {
+  id            String   @id @default(uuid())
+  centreId      String
+  productId     String
+  stockQuantity Int      @default(50)
+  reorderLevel  Int      @default(10)
+  updatedAt     DateTime @updatedAt
+
+  centre        Centre   @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([centreId, productId])
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  productId String
+  quantity  Int      @default(1)
+
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  orderNumber String      @unique
+  farmerId    String
+  centreId    String
+  totalAmount Float
+  status      OrderStatus @default(PLACED)
+  pickupOtp   String?
+  pickupQr    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  farmer      User        @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  centre      Centre      @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  items       OrderItem[]
+
+  @@index([farmerId, status])
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  productId   String
+  quantity    Int
+  unitPrice   Float
+  totalPrice  Float
+
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model SupportTicket {
+  id          String         @id @default(uuid())
+  ticketNumber String        @unique
+  userId      String
+  centreId    String?
+  category    String
+  priority    TicketPriority @default(MEDIUM)
+  status      TicketStatus   @default(OPEN)
+  subject     String
+  description String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  centre      Centre?        @relation(fields: [centreId], references: [id])
+  comments    TicketComment[]
+
+  @@index([userId, status])
+  @@index([centreId, status])
+}
+
+model TicketComment {
+  id        String        @id @default(uuid())
+  ticketId  String
+  userId    String
+  message   String
+  isStaff   Boolean       @default(false)
+  createdAt DateTime      @default(now())
+
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Feedback {
+  id           String   @id @default(uuid())
+  userId       String
+  centreId     String
+  bookingId    String?
+  rating       Int      @default(5)
+  category     String   @default("Procurement Experience")
+  comments     String?
+  aspectScores String?  // JSON string storing queue, staff, transparency, facilities ratings
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  centre       Centre   @relation(fields: [centreId], references: [id], onDelete: Cascade)
+
+  @@index([centreId, rating])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  userRole     String?
+  action       String
+  resourceType String
+  resourceId   String?
+  ipAddress    String?
+  userAgent    String?
+  metadata     String?  // JSON string
+  createdAt    DateTime @default(now())
+
+  user         User?    @relation(fields: [userId], references: [id])
+
+  @@index([action, resourceType])
+  @@index([createdAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+}
