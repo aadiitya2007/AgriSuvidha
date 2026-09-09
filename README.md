@@ -143,8 +143,8 @@ cd server
 npm test
 ```
 ```text
-Test Files  4 passed (4)
-Tests       18 passed (18)
+Test Files  5 passed (5)
+Tests       24 passed (24)
 Duration    ~500ms
 ```
 
