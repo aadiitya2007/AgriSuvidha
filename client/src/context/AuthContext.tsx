@@ -84,11 +84,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       body: JSON.stringify(formData),
     });
 
+    if (!data || !data.tokens?.accessToken) {
+      throw new Error('Registration did not return valid authentication credentials. Please try logging in.');
+    }
+
     localStorage.setItem('agrisuvidha_token', data.tokens.accessToken);
-    localStorage.setItem('agrisuvidha_refresh_token', data.tokens.refreshToken);
+    localStorage.setItem('agrisuvidha_refresh_token', data.tokens.refreshToken || '');
     localStorage.removeItem('krishisetu_token');
     localStorage.removeItem('krishisetu_refresh_token');
-    setUser(data.user);
+    if (data.user) {
+      setUser(data.user);
+    }
   };
 
   const quickDemoLogin = async (type: string) => {

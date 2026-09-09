@@ -98,9 +98,23 @@ export const AuthPage: React.FC = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const cleanDigits = registerData.phone.replace(/\D/g, '');
+    if (cleanDigits.length < 10) {
+      setError('Please enter a valid 10-digit mobile number (कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें).');
+      return;
+    }
+
+    const last10 = cleanDigits.slice(-10);
+    const formattedPhone = `+91 ${last10.slice(0, 5)} ${last10.slice(5)}`;
+
     setLoading(true);
     try {
-      await registerFarmer(registerData);
+      await registerFarmer({
+        ...registerData,
+        phone: formattedPhone,
+        farmSizeAcres: Number(registerData.farmSizeAcres) || 2.5,
+      });
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Registration failed.');
@@ -301,7 +315,8 @@ export const AuthPage: React.FC = () => {
                   type="tel"
                   value={registerData.phone}
                   onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
-                  placeholder="+91 98230 99999"
+                  placeholder="e.g. 9876543210 or +91 98765 43210"
+                  minLength={10}
                   required
                 />
                 <Input

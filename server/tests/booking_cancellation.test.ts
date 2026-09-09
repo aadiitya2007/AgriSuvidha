@@ -148,9 +148,12 @@ describe('Booking Cancellation & 2-Hour Time Cut-off Rule Tests', () => {
 
     it('should reject cancellation if slot is within 2 hours of start time', async () => {
       // Create a slot starting 30 minutes from now
-      const todayStr = new Date().toISOString().split('T')[0];
       const now = new Date();
       const slotTime = new Date(now.getTime() + 30 * 60000); // 30 mins ahead
+      const year = slotTime.getFullYear();
+      const month = String(slotTime.getMonth() + 1).padStart(2, '0');
+      const day = String(slotTime.getDate()).padStart(2, '0');
+      const todayStr = `${year}-${month}-${day}`;
       let hours = slotTime.getHours();
       const meridiem = hours >= 12 ? 'PM' : 'AM';
       if (hours > 12) hours -= 12;

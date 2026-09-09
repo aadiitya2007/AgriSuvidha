@@ -506,7 +506,38 @@ let mockProcurementRecords: any[] = [
     };
   }
 
-  return { success: true, message: 'Simulated operation completed successfully.' };
+  if (endpoint.includes('/auth/register-farmer')) {
+    let reqBody: any = {};
+    try { reqBody = options.body ? JSON.parse(options.body as string) : {}; } catch (_) {}
+    const digits = (reqBody.phone || '9823099999').replace(/\D/g, '');
+    const last10 = digits.slice(-10);
+    const standardPhone = `+91 ${last10.slice(0, 5)} ${last10.slice(5)}`;
+    return {
+      user: {
+        id: `farmer-${Date.now()}`,
+        phone: standardPhone,
+        role: 'FARMER',
+        profile: {
+          fullName: reqBody.fullName || 'Registered Farmer',
+          village: reqBody.village || 'Katol',
+          district: reqBody.district || 'Nagpur',
+          state: reqBody.state || 'Maharashtra',
+          pincode: reqBody.pincode || '440008',
+          farmSizeAcres: reqBody.farmSizeAcres || 5.0,
+          preferredLanguage: reqBody.preferredLanguage || 'hi',
+          farmerRegistrationNumber: `REG-${Date.now().toString().slice(-6)}`,
+          bankAccountNumber: reqBody.bankAccountNumber ? `XXXX-XXXX-${reqBody.bankAccountNumber.slice(-4)}` : 'XXXX-XXXX-1234',
+          bankIfsc: reqBody.bankIfsc || 'SBIN0001234',
+        },
+      },
+      tokens: {
+        accessToken: 'mock-farmer-access-token',
+        refreshToken: 'mock-farmer-refresh-token',
+      },
+    };
+  }
+
+  return null;
 }
 
 export async function apiRequest<T = any>(
@@ -574,7 +605,10 @@ export async function apiRequest<T = any>(
 
     if (!res.ok) {
       if (res.status === 404 || res.status >= 500) {
-        return getMockFallback(endpoint, options) as T;
+        const fallback = getMockFallback(endpoint, options);
+        if (fallback !== null && fallback !== undefined) {
+          return fallback as T;
+        }
       }
       throw new ApiError(
         data?.error?.message || 'Request failed',
@@ -595,6 +629,9 @@ export async function apiRequest<T = any>(
 
     return data?.data !== undefined ? data.data : data;
   } catch (err: any) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
     // Graceful Fallback for Tunnel disconnects, Offline, or Vercel standalone preview
     console.warn(`[AgriSuvidha Fallback] Request ${endpoint} fallback:`, err.message);
     const fallback = getMockFallback(endpoint, options);

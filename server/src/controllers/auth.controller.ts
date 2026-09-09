@@ -6,7 +6,9 @@ import { z } from 'zod';
 export const registerFarmerSchema = z.object({
   body: z.object({
     fullName: z.string().min(2, 'Full name is required'),
-    phone: z.string().min(10, 'Valid phone number is required'),
+    phone: z.string().refine((val) => val.replace(/\D/g, '').length >= 10, {
+      message: 'Valid 10-digit mobile number is required',
+    }),
     email: z.string().email().optional().or(z.literal('')),
     village: z.string().min(2, 'Village is required'),
     district: z.string().min(2, 'District is required'),

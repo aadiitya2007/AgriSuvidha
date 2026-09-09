@@ -42,6 +42,11 @@ export class AuthService {
     bankIfsc?: string;
     consentCommunications: boolean;
   }) {
+    // Normalize phone format
+    const digits = data.phone.replace(/\D/g, '');
+    const last10 = digits.slice(-10);
+    const standardPhone = digits.length >= 10 ? `+91 ${last10.slice(0, 5)} ${last10.slice(5)}` : data.phone.trim();
+
     // Check if phone already registered
     const candidatePhones = normalizePhoneCandidates(data.phone);
     const existing = await prisma.user.findFirst({
@@ -52,12 +57,22 @@ export class AuthService {
       throw new AppError('A farmer with this phone number is already registered. Please log in.', 409, 'PHONE_EXISTS');
     }
 
+    const cleanEmail = data.email && data.email.trim() !== '' ? data.email.trim().toLowerCase() : null;
+    if (cleanEmail) {
+      const existingEmail = await prisma.user.findFirst({
+        where: { email: cleanEmail },
+      });
+      if (existingEmail) {
+        throw new AppError('An account with this email address already exists. Please log in or use a different email.', 409, 'EMAIL_EXISTS');
+      }
+    }
+
     // Create user and profile in transaction
     const newUser = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          phone: data.phone,
-          email: data.email || null,
+          phone: standardPhone,
+          email: cleanEmail,
           role: Role.FARMER,
           farmerProfile: {
             create: {

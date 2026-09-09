@@ -20,11 +20,12 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
   logger.error(`Error processing ${req.method} ${req.url}:`, err);
 
   if (err instanceof ZodError) {
+    const firstErrorMessage = err.errors[0]?.message;
     return res.status(400).json({
       success: false,
       error: {
         code: 'VALIDATION_ERROR',
-        message: 'Invalid request payload',
+        message: firstErrorMessage || 'Invalid request payload',
         details: err.errors.map((e) => ({
           field: e.path.join('.'),
           message: e.message,
@@ -40,6 +41,17 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
         code: err.code,
         message: err.message,
         details: err.details,
+      },
+    });
+  }
+
+  if (err.code === 'P2002') {
+    const target = Array.isArray(err.meta?.target) ? err.meta.target.join(', ') : err.meta?.target || 'field';
+    return res.status(409).json({
+      success: false,
+      error: {
+        code: 'CONFLICT',
+        message: `An account with this ${target} already exists. Please log in or use a different ${target}.`,
       },
     });
   }

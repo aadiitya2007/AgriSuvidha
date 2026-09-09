@@ -56,6 +56,51 @@ describe('AgriSuvidha End-to-End API Integration Tests', () => {
     expect(verifyRes.body.data.user.role).toBe('FARMER');
   });
 
+  it('POST /api/v1/auth/register-farmer creates a new farmer account and returns tokens', async () => {
+    const randomPhone = `98765${Math.floor(10000 + Math.random() * 90000)}`;
+    const regRes = await request(app)
+      .post('/api/v1/auth/register-farmer')
+      .send({
+        fullName: 'Aditya Agarwal',
+        phone: randomPhone,
+        email: `farmer_${Date.now()}@gmail.com`,
+        village: 'Katol',
+        district: 'Nagpur',
+        state: 'Maharashtra',
+        pincode: '440008',
+        farmSizeAcres: 5.0,
+        preferredLanguage: 'hi',
+        bankAccountNumber: '9801234567',
+        bankIfsc: 'SBIN0001234',
+        consentCommunications: true,
+      });
+
+    expect(regRes.status).toBe(201);
+    expect(regRes.body.success).toBe(true);
+    expect(regRes.body.data.tokens.accessToken).toBeDefined();
+    expect(regRes.body.data.tokens.refreshToken).toBeDefined();
+    expect(regRes.body.data.user.role).toBe('FARMER');
+    expect(regRes.body.data.user.profile.fullName).toBe('Aditya Agarwal');
+  });
+
+  it('POST /api/v1/auth/register-farmer rejects invalid phone (< 10 digits) with descriptive error', async () => {
+    const failRes = await request(app)
+      .post('/api/v1/auth/register-farmer')
+      .send({
+        fullName: 'Aditya Agarwal',
+        phone: '987654321', // 9 digits
+        village: 'Katol',
+        district: 'Nagpur',
+        state: 'Maharashtra',
+        pincode: '440008',
+        farmSizeAcres: 5.0,
+      });
+
+    expect(failRes.status).toBe(400);
+    expect(failRes.body.success).toBe(false);
+    expect(failRes.body.error.message).toContain('Valid 10-digit mobile number is required');
+  });
+
   it('POST /api/v1/auth/staff-login for Operator', async () => {
     const res = await request(app)
       .post('/api/v1/auth/staff-login')
