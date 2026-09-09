@@ -34,6 +34,7 @@ COPY --from=server-builder /app/server/dist ./dist
 COPY --from=server-builder /app/server/prisma ./prisma
 COPY --from=server-builder /app/server/node_modules/.prisma ./node_modules/.prisma
 COPY --from=server-builder /app/server/node_modules/@prisma ./node_modules/@prisma
+RUN npx prisma generate
 
 # Copy client build to static folder served by Express
 COPY --from=client-builder /app/client/dist ./public
