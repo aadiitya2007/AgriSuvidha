@@ -60,7 +60,7 @@ export const ProcurementHistoryPage: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-bold text-base text-slate-900">{r.commodity.name}</h3>
-                      <p className="text-xs text-slate-500">{r.centre.name} • Ref: <span className="font-mono font-semibold">{r.receiptNumber}</span></p>
+                      <p className="text-xs text-slate-500">{r.centre?.name || 'Mandi Centre'} • Ref: <span className="font-mono font-semibold">{r.receiptNumber}</span></p>
                     </div>
                   </div>
 

@@ -106,7 +106,7 @@ export const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
               <div className="text-xs text-slate-600 space-y-1 pt-1 border-t border-slate-200/60">
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                  <span>{booking.centre.name} ({booking.centre.district})</span>
+                  <span>{booking.centre?.name || 'Procurement Yard'} {booking.centre?.district ? `(${booking.centre.district})` : ''}</span>
                 </div>
                 <div className="flex items-center gap-1.5 font-mono text-emerald-800 font-semibold">
                   <Clock className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />

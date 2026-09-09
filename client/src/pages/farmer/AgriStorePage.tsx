@@ -257,8 +257,8 @@ export const AgriStorePage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
                     <span className="text-slate-400 uppercase text-[10px] font-bold block mb-1">Pickup Centre</span>
-                    <p className="font-semibold text-slate-800">{ord.centre.name}</p>
-                    <p className="text-slate-500">{ord.centre.address}</p>
+                    <p className="font-semibold text-slate-800">{ord.centre?.name || 'APMC Store'}</p>
+                    <p className="text-slate-500">{ord.centre?.address || 'APMC Yard'}</p>
                   </div>
                   {ord.pickupOtp && (
                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

@@ -12,9 +12,12 @@ export const IncidentAlertBanner: React.FC = () => {
     refetchInterval: 30000,
   });
 
-  if (!incidents || incidents.length === 0) return null;
+  if (!Array.isArray(incidents) || incidents.length === 0 || !incidents[0]) {
+    return null;
+  }
 
   const first = incidents[0];
+  const centreName = first.centre?.name || 'Mandi Centre';
 
   return (
     <div className="bg-amber-500 text-slate-950 px-4 py-2 text-xs sm:text-sm font-semibold shadow-inner border-b border-amber-600">
@@ -25,7 +28,7 @@ export const IncidentAlertBanner: React.FC = () => {
           </span>
           <AlertTriangle className="w-4 h-4 text-amber-950 flex-shrink-0" />
           <span className="truncate">
-            <strong>{first.centre.name}:</strong> {first.impactStatement}
+            <strong>{centreName}:</strong> {first.impactStatement}
           </span>
         </div>
         <Link

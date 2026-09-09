@@ -37,9 +37,9 @@ export const DigitalReceiptModal: React.FC<DigitalReceiptModalProps> = ({
               Government Certified Digital Procurement Receipt
             </div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              {record.centre.name}
+              {record.centre?.name || 'Mandi Procurement Hub'}
             </h2>
-            <p className="text-xs text-slate-500">{record.centre.address}</p>
+            <p className="text-xs text-slate-500">{record.centre?.address || 'APMC Yard'}</p>
             <div className="flex justify-between items-center text-xs mt-4 pt-2 border-t border-slate-100 font-mono">
               <span>Receipt No: <strong>{record.receiptNumber}</strong></span>
               <span>Date: {new Date(record.createdAt).toLocaleDateString()}</span>
@@ -50,14 +50,14 @@ export const DigitalReceiptModal: React.FC<DigitalReceiptModalProps> = ({
           <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-100">
             <div>
               <span className="text-slate-400 uppercase text-[10px] font-bold block mb-1">Farmer Information</span>
-              <p className="font-bold text-slate-800 text-sm">{record.farmer.farmerProfile?.fullName || 'Farmer'}</p>
-              <p className="text-slate-600">Mobile: {record.farmer.phone}</p>
-              <p className="text-slate-600">Village: {record.farmer.farmerProfile?.village || 'N/A'}, {record.farmer.farmerProfile?.district}</p>
+              <p className="font-bold text-slate-800 text-sm">{record.farmer?.farmerProfile?.fullName || 'Farmer'}</p>
+              <p className="text-slate-600">Mobile: {record.farmer?.phone}</p>
+              <p className="text-slate-600">Village: {record.farmer?.farmerProfile?.village || 'N/A'}, {record.farmer?.farmerProfile?.district}</p>
             </div>
             <div>
               <span className="text-slate-400 uppercase text-[10px] font-bold block mb-1">Procurement Yard</span>
-              <p className="font-bold text-slate-800 text-sm">{record.centre.name}</p>
-              <p className="text-slate-600">Code: {record.centre.code}</p>
+              <p className="font-bold text-slate-800 text-sm">{record.centre?.name || 'APMC Yard'}</p>
+              <p className="text-slate-600">Code: {record.centre?.code || 'APMC-01'}</p>
               <p className="text-slate-600">Grading Officer: APMC Quality Inspector</p>
             </div>
           </div>

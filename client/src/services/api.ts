@@ -569,7 +569,6 @@ export async function apiRequest<T = any>(
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      // If server returns 404 or 502/503 on an unconfigured Vercel instance, gracefully fallback
       if (res.status === 404 || res.status >= 500) {
         return getMockFallback(endpoint, options) as T;
       }
@@ -581,12 +580,22 @@ export async function apiRequest<T = any>(
       );
     }
 
-    return data.data !== undefined ? data.data : data;
+    if (data && typeof data === 'object' && data.success === false && data.error) {
+      throw new ApiError(
+        data.error.message || 'API request failed',
+        400,
+        data.error.code,
+        data.error.details
+      );
+    }
+
+    return data?.data !== undefined ? data.data : data;
   } catch (err: any) {
-    // Network Error / Offline / Server down on standalone Vercel preview
-    if (err instanceof TypeError || err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('network')) {
-      console.warn(`[AgriSuvidha Vercel Mode] Network offline for ${endpoint}. Serving instant fallback data.`);
-      return getMockFallback(endpoint, options) as T;
+    // Graceful Fallback for Tunnel disconnects, Offline, or Vercel standalone preview
+    console.warn(`[AgriSuvidha Fallback] Request ${endpoint} fallback:`, err.message);
+    const fallback = getMockFallback(endpoint, options);
+    if (fallback !== null && fallback !== undefined) {
+      return fallback as T;
     }
     throw err;
   }

@@ -169,7 +169,7 @@ export const FarmerDashboard: React.FC = () => {
                     <h3 className="text-xl font-bold text-slate-900">{nextBooking.commodity.name}</h3>
                     <p className="text-xs text-slate-600 flex items-center gap-1.5 mt-1">
                       <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                      {nextBooking.centre.name} ({nextBooking.centre.district})
+                      {nextBooking.centre?.name || 'Procurement Hub'} {nextBooking.centre?.district ? `(${nextBooking.centre.district})` : ''}
                     </p>
                   </div>
                   <div className="text-left sm:text-right">
@@ -488,8 +488,8 @@ export const FarmerDashboard: React.FC = () => {
                     <td className="p-4 font-mono font-bold text-slate-800">
                       {p.receiptNumber}
                     </td>
-                    <td className="p-4 text-slate-700">{p.centre.name}</td>
-                    <td className="p-4 font-semibold text-slate-900">{p.commodity.name}</td>
+                    <td className="p-4 text-slate-700">{p.centre?.name || 'APMC Hub'}</td>
+                    <td className="p-4 font-semibold text-slate-900">{p.commodity?.name || 'Commodity'}</td>
                     <td className="p-4 font-mono font-bold">{p.acceptedWeight} {p.unit}</td>
                     <td className="p-4">
                       <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 text-[10px]">
@@ -498,7 +498,7 @@ export const FarmerDashboard: React.FC = () => {
                       </span>
                     </td>
                     <td className="p-4 font-mono font-bold text-slate-900">
-                      ₹{p.netPayable.toLocaleString('en-IN')}
+                      ₹{p.netPayable?.toLocaleString('en-IN') || 0}
                     </td>
                     <td className="p-4">
                       <Badge variant={p.status === 'PAID' ? 'success' : 'harvest'}>
@@ -510,9 +510,9 @@ export const FarmerDashboard: React.FC = () => {
                         size="sm"
                         variant="outline"
                         onClick={() => handleOpenReceipt(p)}
-                        className="text-xs flex items-center gap-1 ml-auto font-medium"
+                        className="text-xs flex items-center gap-1.5 ml-auto"
                       >
-                        <Printer className="w-3.5 h-3.5" /> Receipt
+                        <Printer className="w-3.5 h-3.5" /> View Receipt
                       </Button>
                     </td>
                   </tr>
@@ -531,8 +531,8 @@ export const FarmerDashboard: React.FC = () => {
           bookingReference={selectedQrBooking.bookingReference}
           qrPayload={selectedQrBooking.activeQr || selectedQrBooking.id}
           otpCode={selectedQrBooking.activeOtp || '123456'}
-          centreName={selectedQrBooking.centre.name}
-          commodityName={selectedQrBooking.commodity.name}
+          centreName={selectedQrBooking.centre?.name || 'APMC Centre'}
+          commodityName={selectedQrBooking.commodity?.name || 'Commodity'}
         />
       )}
 

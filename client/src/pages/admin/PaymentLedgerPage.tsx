@@ -162,7 +162,7 @@ export const PaymentLedgerPage: React.FC = () => {
                       {p.farmer.farmerProfile?.fullName || 'Farmer'}
                     </td>
                     <td className="p-3.5 font-mono text-slate-500">{p.farmer.phone}</td>
-                    <td className="p-3.5">{p.centre.name}</td>
+                    <td className="p-3.5">{p.centre?.name || 'Mandi Centre'}</td>
                     <td className="p-3.5 font-black font-mono text-emerald-800 text-sm">
                       ₹{p.amount.toLocaleString('en-IN')}
                     </td>
