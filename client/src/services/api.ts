@@ -513,7 +513,7 @@ export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = localStorage.getItem('krishisetu_token');
+  const token = localStorage.getItem('agrisuvidha_token') || localStorage.getItem('krishisetu_token');
   const headers = new Headers(options.headers || {});
 
   if (token && !headers.has('Authorization')) {
@@ -532,7 +532,7 @@ export async function apiRequest<T = any>(
 
     // Handle Token Expiry
     if (res.status === 401) {
-      const refreshToken = localStorage.getItem('krishisetu_refresh_token');
+      const refreshToken = localStorage.getItem('agrisuvidha_refresh_token') || localStorage.getItem('krishisetu_refresh_token');
       if (refreshToken && !endpoint.includes('/auth/refresh-token')) {
         try {
           const refreshRes = await fetch(`${API_BASE}/auth/refresh-token`, {
@@ -542,8 +542,10 @@ export async function apiRequest<T = any>(
           });
           const refreshData = await refreshRes.json();
           if (refreshData.success && refreshData.data?.accessToken) {
-            localStorage.setItem('krishisetu_token', refreshData.data.accessToken);
-            localStorage.setItem('krishisetu_refresh_token', refreshData.data.refreshToken);
+            localStorage.setItem('agrisuvidha_token', refreshData.data.accessToken);
+            localStorage.setItem('agrisuvidha_refresh_token', refreshData.data.refreshToken);
+            localStorage.removeItem('krishisetu_token');
+            localStorage.removeItem('krishisetu_refresh_token');
 
             headers.set('Authorization', `Bearer ${refreshData.data.accessToken}`);
             const retryRes = await fetch(`${API_BASE}${endpoint}`, {
@@ -555,6 +557,8 @@ export async function apiRequest<T = any>(
             return retryData.data;
           }
         } catch (err) {
+          localStorage.removeItem('agrisuvidha_token');
+          localStorage.removeItem('agrisuvidha_refresh_token');
           localStorage.removeItem('krishisetu_token');
           localStorage.removeItem('krishisetu_refresh_token');
         }

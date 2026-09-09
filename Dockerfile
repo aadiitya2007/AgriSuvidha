@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for KrishiSetu Full-Stack Platform
+# Multi-stage Dockerfile for AgriSuvidha Full-Stack Platform
 
 # Stage 1: Build Frontend Client
 FROM node:20-alpine AS client-builder

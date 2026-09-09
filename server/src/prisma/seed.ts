@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 const prisma = new PrismaClient();
 
 async function main() {
-  logger.info('Starting KrishiSetu database seeding...');
+  logger.info('Starting AgriSuvidha database seeding...');
 
   // Clean existing tables in reverse dependency order
   await prisma.auditLog.deleteMany({});
@@ -47,7 +47,7 @@ async function main() {
   const adminUser = await prisma.user.create({
     data: {
       phone: '+91 99000 00001',
-      email: 'admin@krishisetu.gov.in',
+      email: 'admin@agrisuvidha.gov.in',
       passwordHash: defaultPasswordHash,
       role: Role.PLATFORM_ADMIN,
     },
@@ -56,7 +56,7 @@ async function main() {
   const managerNagpur = await prisma.user.create({
     data: {
       phone: '+91 99000 00002',
-      email: 'manager.nagpur@krishisetu.gov.in',
+      email: 'manager.nagpur@agrisuvidha.gov.in',
       passwordHash: managerPasswordHash,
       role: Role.CENTRE_MANAGER,
     },
@@ -65,7 +65,7 @@ async function main() {
   const operatorNagpur = await prisma.user.create({
     data: {
       phone: '+91 99000 00003',
-      email: 'operator.nagpur@krishisetu.gov.in',
+      email: 'operator.nagpur@agrisuvidha.gov.in',
       passwordHash: operatorPasswordHash,
       role: Role.CENTRE_OPERATOR,
     },
@@ -74,7 +74,7 @@ async function main() {
   const operatorNashik = await prisma.user.create({
     data: {
       phone: '+91 99000 00004',
-      email: 'operator.nashik@krishisetu.gov.in',
+      email: 'operator.nashik@agrisuvidha.gov.in',
       passwordHash: operatorPasswordHash,
       role: Role.CENTRE_OPERATOR,
     },
@@ -83,7 +83,7 @@ async function main() {
   const managerNashik = await prisma.user.create({
     data: {
       phone: '+91 99000 00012',
-      email: 'manager.nashik@krishisetu.gov.in',
+      email: 'manager.nashik@agrisuvidha.gov.in',
       passwordHash: managerPasswordHash,
       role: Role.CENTRE_MANAGER,
     },
@@ -92,7 +92,7 @@ async function main() {
   const operatorAmravati = await prisma.user.create({
     data: {
       phone: '+91 99000 00005',
-      email: 'operator.amravati@krishisetu.gov.in',
+      email: 'operator.amravati@agrisuvidha.gov.in',
       passwordHash: operatorPasswordHash,
       role: Role.CENTRE_OPERATOR,
     },
@@ -101,7 +101,7 @@ async function main() {
   const managerAmravati = await prisma.user.create({
     data: {
       phone: '+91 99000 00013',
-      email: 'manager.amravati@krishisetu.gov.in',
+      email: 'manager.amravati@agrisuvidha.gov.in',
       passwordHash: managerPasswordHash,
       role: Role.CENTRE_MANAGER,
     },
@@ -110,7 +110,7 @@ async function main() {
   const operatorPune = await prisma.user.create({
     data: {
       phone: '+91 99000 00006',
-      email: 'operator.pune@krishisetu.gov.in',
+      email: 'operator.pune@agrisuvidha.gov.in',
       passwordHash: operatorPasswordHash,
       role: Role.CENTRE_OPERATOR,
     },
@@ -119,7 +119,7 @@ async function main() {
   const managerPune = await prisma.user.create({
     data: {
       phone: '+91 99000 00014',
-      email: 'manager.pune@krishisetu.gov.in',
+      email: 'manager.pune@agrisuvidha.gov.in',
       passwordHash: managerPasswordHash,
       role: Role.CENTRE_MANAGER,
     },
@@ -141,7 +141,7 @@ async function main() {
       operationalStatus: OperationalStatus.OPERATIONAL,
       statusNotice: 'All gates open. Weighbridge 1 & 2 fully operational.',
       phone: '+91 712 258 9011',
-      email: 'apmc.nagpur@krishisetu.gov.in',
+      email: 'apmc.nagpur@agrisuvidha.gov.in',
     },
   });
 
@@ -160,7 +160,7 @@ async function main() {
       operationalStatus: OperationalStatus.LIMITED_SERVICE,
       statusNotice: 'Weighbridge Sensor Calibration in progress. Gate 3 operating with 50% capacity.',
       phone: '+91 253 251 4099',
-      email: 'apmc.nashik@krishisetu.gov.in',
+      email: 'apmc.nashik@agrisuvidha.gov.in',
     },
   });
 
@@ -179,7 +179,7 @@ async function main() {
       operationalStatus: OperationalStatus.LOGISTICS_DELAYED,
       statusNotice: 'Freight logistics backlog on NH53. Offloading turnaround extended by 45 mins.',
       phone: '+91 721 267 1120',
-      email: 'apmc.amravati@krishisetu.gov.in',
+      email: 'apmc.amravati@agrisuvidha.gov.in',
     },
   });
 
@@ -198,7 +198,7 @@ async function main() {
       operationalStatus: OperationalStatus.OPERATIONAL,
       statusNotice: 'Full operations. Express lane active for bookings under 30 quintals.',
       phone: '+91 20 2426 8000',
-      email: 'apmc.pune@krishisetu.gov.in',
+      email: 'apmc.pune@agrisuvidha.gov.in',
     },
   });
 
@@ -879,7 +879,7 @@ async function main() {
     ],
   });
 
-  logger.info('KrishiSetu seed data successfully populated in PostgreSQL!');
+  logger.info('AgriSuvidha seed data successfully populated in PostgreSQL!');
 }
 
 main()

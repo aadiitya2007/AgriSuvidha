@@ -25,14 +25,14 @@ async function main() {
 
   // 2. Provision Staff for all regions
   const staffConfigs = [
-    { email: 'operator.nagpur@krishisetu.gov.in', phone: '+91 99000 00003', role: Role.CENTRE_OPERATOR, centre: nagpur, pass: operatorHash },
-    { email: 'manager.nagpur@krishisetu.gov.in', phone: '+91 99000 00002', role: Role.CENTRE_MANAGER, centre: nagpur, pass: managerHash },
-    { email: 'operator.nashik@krishisetu.gov.in', phone: '+91 99000 00004', role: Role.CENTRE_OPERATOR, centre: nashik, pass: operatorHash },
-    { email: 'manager.nashik@krishisetu.gov.in', phone: '+91 99000 00012', role: Role.CENTRE_MANAGER, centre: nashik, pass: managerHash },
-    { email: 'operator.amravati@krishisetu.gov.in', phone: '+91 99000 00005', role: Role.CENTRE_OPERATOR, centre: amravati, pass: operatorHash },
-    { email: 'manager.amravati@krishisetu.gov.in', phone: '+91 99000 00013', role: Role.CENTRE_MANAGER, centre: amravati, pass: managerHash },
-    { email: 'operator.pune@krishisetu.gov.in', phone: '+91 99000 00006', role: Role.CENTRE_OPERATOR, centre: pune, pass: operatorHash },
-    { email: 'manager.pune@krishisetu.gov.in', phone: '+91 99000 00014', role: Role.CENTRE_MANAGER, centre: pune, pass: managerHash },
+    { email: 'operator.nagpur@agrisuvidha.gov.in', phone: '+91 99000 00003', role: Role.CENTRE_OPERATOR, centre: nagpur, pass: operatorHash },
+    { email: 'manager.nagpur@agrisuvidha.gov.in', phone: '+91 99000 00002', role: Role.CENTRE_MANAGER, centre: nagpur, pass: managerHash },
+    { email: 'operator.nashik@agrisuvidha.gov.in', phone: '+91 99000 00004', role: Role.CENTRE_OPERATOR, centre: nashik, pass: operatorHash },
+    { email: 'manager.nashik@agrisuvidha.gov.in', phone: '+91 99000 00012', role: Role.CENTRE_MANAGER, centre: nashik, pass: managerHash },
+    { email: 'operator.amravati@agrisuvidha.gov.in', phone: '+91 99000 00005', role: Role.CENTRE_OPERATOR, centre: amravati, pass: operatorHash },
+    { email: 'manager.amravati@agrisuvidha.gov.in', phone: '+91 99000 00013', role: Role.CENTRE_MANAGER, centre: amravati, pass: managerHash },
+    { email: 'operator.pune@agrisuvidha.gov.in', phone: '+91 99000 00006', role: Role.CENTRE_OPERATOR, centre: pune, pass: operatorHash },
+    { email: 'manager.pune@agrisuvidha.gov.in', phone: '+91 99000 00014', role: Role.CENTRE_MANAGER, centre: pune, pass: managerHash },
   ];
 
   for (const s of staffConfigs) {

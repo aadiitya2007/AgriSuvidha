@@ -1,7 +1,7 @@
 {
-  "name": "krishisetu",
+  "name": "agrisuvidha",
   "version": "1.0.0",
-  "description": "KrishiSetu: Full-Stack Digital Farmer Procurement and Collection Platform (SHI26032)",
+  "description": "AgriSuvidha: Full-Stack Digital Farmer Procurement and Collection Platform (SIH26032)",
   "private": true,
   "workspaces": [
     "server",

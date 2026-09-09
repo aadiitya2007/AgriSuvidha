@@ -23,7 +23,7 @@ export const AuthPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Staff Login fields
-  const [email, setEmail] = useState('operator.nagpur@krishisetu.gov.in');
+  const [email, setEmail] = useState('operator.nagpur@agrisuvidha.gov.in');
   const [password, setPassword] = useState('Operator@12345');
 
   // Register fields
@@ -402,29 +402,29 @@ export const AuthPage: React.FC = () => {
                   {[
                     {
                       name: 'Nagpur Central Hub',
-                      opEmail: 'operator.nagpur@krishisetu.gov.in',
-                      mgrEmail: 'manager.nagpur@krishisetu.gov.in',
+                      opEmail: 'operator.nagpur@agrisuvidha.gov.in',
+                      mgrEmail: 'manager.nagpur@agrisuvidha.gov.in',
                       opKey: 'operator-nagpur',
                       mgrKey: 'manager-nagpur',
                     },
                     {
                       name: 'Nashik Onion Yard',
-                      opEmail: 'operator.nashik@krishisetu.gov.in',
-                      mgrEmail: 'manager.nashik@krishisetu.gov.in',
+                      opEmail: 'operator.nashik@agrisuvidha.gov.in',
+                      mgrEmail: 'manager.nashik@agrisuvidha.gov.in',
                       opKey: 'operator-nashik',
                       mgrKey: 'manager-nashik',
                     },
                     {
                       name: 'Amravati Cotton APMC',
-                      opEmail: 'operator.amravati@krishisetu.gov.in',
-                      mgrEmail: 'manager.amravati@krishisetu.gov.in',
+                      opEmail: 'operator.amravati@agrisuvidha.gov.in',
+                      mgrEmail: 'manager.amravati@agrisuvidha.gov.in',
                       opKey: 'operator-amravati',
                       mgrKey: 'manager-amravati',
                     },
                     {
                       name: 'Pune Kisan Centre',
-                      opEmail: 'operator.pune@krishisetu.gov.in',
-                      mgrEmail: 'manager.pune@krishisetu.gov.in',
+                      opEmail: 'operator.pune@agrisuvidha.gov.in',
+                      mgrEmail: 'manager.pune@agrisuvidha.gov.in',
                       opKey: 'operator-pune',
                       mgrKey: 'manager-pune',
                     },
@@ -466,7 +466,7 @@ export const AuthPage: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="operator.nagpur@krishisetu.gov.in"
+                  placeholder="operator.nagpur@agrisuvidha.gov.in"
                   required
                 />
                 <Input

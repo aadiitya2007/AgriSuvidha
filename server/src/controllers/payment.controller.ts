@@ -45,7 +45,7 @@ export const exportPaymentReportCsv = async (req: AuthenticatedRequest, res: Res
   try {
     const csv = await paymentService.generatePaymentReportCsv(req.query.centreId as string);
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="krishisetu-payment-report-${Date.now()}.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="agrisuvidha-payment-report-${Date.now()}.csv"`);
     res.status(200).send(csv);
   } catch (err) {
     next(err);

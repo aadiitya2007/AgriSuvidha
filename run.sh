@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
-# Resolve KrishiSetu root directory
+# Resolve AgriSuvidha root directory
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd "$DIR"
 
 echo "=========================================================="
-echo "🌾 Starting AgriSuvidha (कृषिसेतु) Full-Stack Platform"
+echo "🌾 Starting AgriSuvidha (एग्री-सुविधा) Full-Stack Platform"
 echo "=========================================================="
 
 # Ensure node/npm is in PATH

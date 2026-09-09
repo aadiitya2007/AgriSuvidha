@@ -22,7 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchCurrentUser = async () => {
-    const token = localStorage.getItem('krishisetu_token');
+    const token = localStorage.getItem('agrisuvidha_token') || localStorage.getItem('krishisetu_token');
     if (!token) {
       setIsLoading(false);
       return;
@@ -31,6 +31,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await apiRequest('/auth/me');
       setUser(data);
     } catch (err) {
+      localStorage.removeItem('agrisuvidha_token');
+      localStorage.removeItem('agrisuvidha_refresh_token');
       localStorage.removeItem('krishisetu_token');
       localStorage.removeItem('krishisetu_refresh_token');
       setUser(null);
@@ -49,8 +51,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       body: JSON.stringify({ phone, otp }),
     });
 
-    localStorage.setItem('krishisetu_token', data.tokens.accessToken);
-    localStorage.setItem('krishisetu_refresh_token', data.tokens.refreshToken);
+    localStorage.setItem('agrisuvidha_token', data.tokens.accessToken);
+    localStorage.setItem('agrisuvidha_refresh_token', data.tokens.refreshToken);
+    localStorage.removeItem('krishisetu_token');
+    localStorage.removeItem('krishisetu_refresh_token');
     setUser(data.user);
   };
 
@@ -67,8 +71,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       body: JSON.stringify({ email, password: passwordPlain }),
     });
 
-    localStorage.setItem('krishisetu_token', data.tokens.accessToken);
-    localStorage.setItem('krishisetu_refresh_token', data.tokens.refreshToken);
+    localStorage.setItem('agrisuvidha_token', data.tokens.accessToken);
+    localStorage.setItem('agrisuvidha_refresh_token', data.tokens.refreshToken);
+    localStorage.removeItem('krishisetu_token');
+    localStorage.removeItem('krishisetu_refresh_token');
     setUser(data.user);
   };
 
@@ -78,8 +84,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       body: JSON.stringify(formData),
     });
 
-    localStorage.setItem('krishisetu_token', data.tokens.accessToken);
-    localStorage.setItem('krishisetu_refresh_token', data.tokens.refreshToken);
+    localStorage.setItem('agrisuvidha_token', data.tokens.accessToken);
+    localStorage.setItem('agrisuvidha_refresh_token', data.tokens.refreshToken);
+    localStorage.removeItem('krishisetu_token');
+    localStorage.removeItem('krishisetu_refresh_token');
     setUser(data.user);
   };
 
@@ -91,23 +99,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (type === 'farmer2') {
         await loginWithOtp('+91 98230 11002', '123456');
       } else if (type === 'operator' || type === 'operator-nagpur') {
-        await loginStaff('operator.nagpur@krishisetu.gov.in', 'Operator@12345');
+        await loginStaff('operator.nagpur@agrisuvidha.gov.in', 'Operator@12345');
       } else if (type === 'operator-nashik') {
-        await loginStaff('operator.nashik@krishisetu.gov.in', 'Operator@12345');
+        await loginStaff('operator.nashik@agrisuvidha.gov.in', 'Operator@12345');
       } else if (type === 'operator-amravati') {
-        await loginStaff('operator.amravati@krishisetu.gov.in', 'Operator@12345');
+        await loginStaff('operator.amravati@agrisuvidha.gov.in', 'Operator@12345');
       } else if (type === 'operator-pune') {
-        await loginStaff('operator.pune@krishisetu.gov.in', 'Operator@12345');
+        await loginStaff('operator.pune@agrisuvidha.gov.in', 'Operator@12345');
       } else if (type === 'manager' || type === 'manager-nagpur') {
-        await loginStaff('manager.nagpur@krishisetu.gov.in', 'Manager@12345');
+        await loginStaff('manager.nagpur@agrisuvidha.gov.in', 'Manager@12345');
       } else if (type === 'manager-nashik') {
-        await loginStaff('manager.nashik@krishisetu.gov.in', 'Manager@12345');
+        await loginStaff('manager.nashik@agrisuvidha.gov.in', 'Manager@12345');
       } else if (type === 'manager-amravati') {
-        await loginStaff('manager.amravati@krishisetu.gov.in', 'Manager@12345');
+        await loginStaff('manager.amravati@agrisuvidha.gov.in', 'Manager@12345');
       } else if (type === 'manager-pune') {
-        await loginStaff('manager.pune@krishisetu.gov.in', 'Manager@12345');
+        await loginStaff('manager.pune@agrisuvidha.gov.in', 'Manager@12345');
       } else if (type === 'admin') {
-        await loginStaff('admin@krishisetu.gov.in', 'Admin@12345');
+        await loginStaff('admin@agrisuvidha.gov.in', 'Admin@12345');
       }
     } catch (err) {
       // Standalone Vercel / Offline Fallback (Guarantees zero-failure demo for SIH evaluators)
@@ -127,77 +135,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
         operator: {
           id: 'demo-operator-nagpur',
-          email: 'operator.nagpur@krishisetu.gov.in',
+          email: 'operator.nagpur@agrisuvidha.gov.in',
           role: 'CENTRE_OPERATOR',
           profile: { fullName: 'Nagpur Gate Operator' },
           assignedCentres: [{ centreId: 'centre-1', centreName: 'Nagpur Central APMC Grain Hub' }],
         },
         'operator-nagpur': {
           id: 'demo-operator-nagpur',
-          email: 'operator.nagpur@krishisetu.gov.in',
+          email: 'operator.nagpur@agrisuvidha.gov.in',
           role: 'CENTRE_OPERATOR',
           profile: { fullName: 'Nagpur Gate Operator' },
           assignedCentres: [{ centreId: 'centre-1', centreName: 'Nagpur Central APMC Grain Hub' }],
         },
         'operator-nashik': {
           id: 'demo-operator-nashik',
-          email: 'operator.nashik@krishisetu.gov.in',
+          email: 'operator.nashik@agrisuvidha.gov.in',
           role: 'CENTRE_OPERATOR',
           profile: { fullName: 'Nashik Gate Operator' },
           assignedCentres: [{ centreId: 'centre-2', centreName: 'Nashik Onion & Agri Yard' }],
         },
         'operator-amravati': {
           id: 'demo-operator-amravati',
-          email: 'operator.amravati@krishisetu.gov.in',
+          email: 'operator.amravati@agrisuvidha.gov.in',
           role: 'CENTRE_OPERATOR',
           profile: { fullName: 'Amravati Terminal Operator' },
           assignedCentres: [{ centreId: 'centre-3', centreName: 'Amravati Cotton & Soybean Terminal' }],
         },
         'operator-pune': {
           id: 'demo-operator-pune',
-          email: 'operator.pune@krishisetu.gov.in',
+          email: 'operator.pune@agrisuvidha.gov.in',
           role: 'CENTRE_OPERATOR',
           profile: { fullName: 'Pune District Operator' },
           assignedCentres: [{ centreId: 'centre-4', centreName: 'Pune District Kisan Procurement Centre' }],
         },
         manager: {
           id: 'demo-manager-nagpur',
-          email: 'manager.nagpur@krishisetu.gov.in',
+          email: 'manager.nagpur@agrisuvidha.gov.in',
           role: 'CENTRE_MANAGER',
           profile: { fullName: 'Nagpur Centre Manager' },
           assignedCentres: [{ centreId: 'centre-1', centreName: 'Nagpur Central APMC Grain Hub' }],
         },
         'manager-nagpur': {
           id: 'demo-manager-nagpur',
-          email: 'manager.nagpur@krishisetu.gov.in',
+          email: 'manager.nagpur@agrisuvidha.gov.in',
           role: 'CENTRE_MANAGER',
           profile: { fullName: 'Nagpur Centre Manager' },
           assignedCentres: [{ centreId: 'centre-1', centreName: 'Nagpur Central APMC Grain Hub' }],
         },
         'manager-nashik': {
           id: 'demo-manager-nashik',
-          email: 'manager.nashik@krishisetu.gov.in',
+          email: 'manager.nashik@agrisuvidha.gov.in',
           role: 'CENTRE_MANAGER',
           profile: { fullName: 'Nashik Centre Manager' },
           assignedCentres: [{ centreId: 'centre-2', centreName: 'Nashik Onion & Agri Yard' }],
         },
         'manager-amravati': {
           id: 'demo-manager-amravati',
-          email: 'manager.amravati@krishisetu.gov.in',
+          email: 'manager.amravati@agrisuvidha.gov.in',
           role: 'CENTRE_MANAGER',
           profile: { fullName: 'Amravati Centre Manager' },
           assignedCentres: [{ centreId: 'centre-3', centreName: 'Amravati Cotton & Soybean Terminal' }],
         },
         'manager-pune': {
           id: 'demo-manager-pune',
-          email: 'manager.pune@krishisetu.gov.in',
+          email: 'manager.pune@agrisuvidha.gov.in',
           role: 'CENTRE_MANAGER',
           profile: { fullName: 'Pune Centre Manager' },
           assignedCentres: [{ centreId: 'centre-4', centreName: 'Pune District Kisan Procurement Centre' }],
         },
         admin: {
           id: 'demo-admin',
-          email: 'admin@krishisetu.gov.in',
+          email: 'admin@agrisuvidha.gov.in',
           role: 'PLATFORM_ADMIN',
           profile: { fullName: 'State Agricultural Director' },
         },
@@ -206,7 +214,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const selected = mockUsers[type];
       if (selected) {
         setUser(selected);
-        localStorage.setItem('krishisetu_token', 'demo-token');
+        localStorage.setItem('agrisuvidha_token', 'demo-token');
+        localStorage.removeItem('krishisetu_token');
+        localStorage.removeItem('krishisetu_refresh_token');
       }
     } finally {
       setIsLoading(false);
@@ -214,6 +224,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    localStorage.removeItem('agrisuvidha_token');
+    localStorage.removeItem('agrisuvidha_refresh_token');
     localStorage.removeItem('krishisetu_token');
     localStorage.removeItem('krishisetu_refresh_token');
     setUser(null);

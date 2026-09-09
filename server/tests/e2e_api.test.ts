@@ -13,7 +13,7 @@ describe('AgriSuvidha End-to-End API Integration Tests', () => {
     const res = await request(app).get('/health');
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('UP');
-    expect(res.body.service).toBe('KrishiSetu API');
+    expect(res.body.service).toBe('AgriSuvidha API');
   });
 
   it('GET /ready should confirm database is connected', async () => {
@@ -60,7 +60,7 @@ describe('AgriSuvidha End-to-End API Integration Tests', () => {
     const res = await request(app)
       .post('/api/v1/auth/staff-login')
       .send({
-        email: 'operator.nagpur@krishisetu.gov.in',
+        email: 'operator.nagpur@agrisuvidha.gov.in',
         password: 'Operator@12345',
       });
 
