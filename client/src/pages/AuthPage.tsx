@@ -81,7 +81,13 @@ export const AuthPage: React.FC = () => {
     setLoading(true);
     try {
       await loginStaff(email, password);
-      navigate('/admin');
+      if (email.toLowerCase().includes('operator')) {
+        navigate('/admin/queue');
+      } else if (email.toLowerCase().includes('manager')) {
+        navigate('/admin/procurement');
+      } else {
+        navigate('/admin');
+      }
     } catch (err: any) {
       setError(err.message || 'Invalid staff email or password.');
     } finally {
@@ -108,7 +114,11 @@ export const AuthPage: React.FC = () => {
     setLoading(true);
     try {
       await quickDemoLogin(roleKey);
-      if (roleKey === 'operator' || roleKey === 'manager' || roleKey === 'admin') {
+      if (roleKey === 'operator') {
+        navigate('/admin/queue');
+      } else if (roleKey === 'manager') {
+        navigate('/admin/procurement');
+      } else if (roleKey === 'admin') {
         navigate('/admin');
       } else {
         navigate('/dashboard');

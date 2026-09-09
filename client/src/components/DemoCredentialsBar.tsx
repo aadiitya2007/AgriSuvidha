@@ -1,10 +1,30 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { KeyRound, User, ChevronDown, ChevronUp, ShieldCheck, Check } from 'lucide-react';
 
 export const DemoCredentialsBar: React.FC = () => {
   const { user, quickDemoLogin, logout } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
+  const [loadingRole, setLoadingRole] = useState<string | null>(null);
+
+  const handleRoleSwitch = async (role: 'farmer1' | 'farmer2' | 'operator' | 'manager' | 'admin') => {
+    setLoadingRole(role);
+    try {
+      await quickDemoLogin(role);
+      if (role === 'operator') {
+        navigate('/admin/queue');
+      } else if (role === 'manager') {
+        navigate('/admin/procurement');
+      } else if (role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
+    } finally {
+      setLoadingRole(null);
+    }
+  };
 
   return (
     <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-slate-200 text-xs border-b border-emerald-800/40 sticky top-0 z-40">
@@ -29,43 +49,51 @@ export const DemoCredentialsBar: React.FC = () => {
           <span className="text-slate-400 hidden sm:inline">1-Click Demo Login:</span>
           <div className="flex flex-wrap gap-1.5">
             <button
-              onClick={() => quickDemoLogin('farmer1')}
-              className="bg-emerald-700/80 hover:bg-emerald-600 text-white px-2 py-1 rounded text-xs font-medium transition-all shadow-sm"
+              onClick={() => handleRoleSwitch('farmer1')}
+              disabled={!!loadingRole}
+              className="bg-emerald-700/80 hover:bg-emerald-600 text-white px-2 py-1 rounded text-xs font-medium transition-all shadow-sm active:scale-95 disabled:opacity-50"
               title="Farmer Rameshwar Patil (In Nagpur Queue)"
             >
-              🌾 Farmer (In Queue)
+              {loadingRole === 'farmer1' ? 'Switching...' : '🌾 Farmer (In Queue)'}
             </button>
             <button
-              onClick={() => quickDemoLogin('farmer2')}
-              className="bg-emerald-800/80 hover:bg-emerald-700 text-white px-2 py-1 rounded text-xs font-medium transition-all shadow-sm"
+              onClick={() => handleRoleSwitch('farmer2')}
+              disabled={!!loadingRole}
+              className="bg-emerald-800/80 hover:bg-emerald-700 text-white px-2 py-1 rounded text-xs font-medium transition-all shadow-sm active:scale-95 disabled:opacity-50"
               title="Farmer Suresh Deshmukh (Waiting)"
             >
-              🌾 Farmer 2
+              {loadingRole === 'farmer2' ? 'Switching...' : '🌾 Farmer 2'}
             </button>
             <button
-              onClick={() => quickDemoLogin('operator')}
-              className="bg-sky-700/80 hover:bg-sky-600 text-white px-2 py-1 rounded text-xs font-medium transition-all shadow-sm"
-              title="Centre Operator (Nagpur APMC)"
+              onClick={() => handleRoleSwitch('operator')}
+              disabled={!!loadingRole}
+              className="bg-sky-700/80 hover:bg-sky-600 text-white px-2 py-1 rounded text-xs font-medium transition-all shadow-sm active:scale-95 disabled:opacity-50"
+              title="Mandi Gate Operator (Nagpur APMC - Weighbridge & Queue)"
             >
-              🔍 Operator
+              {loadingRole === 'operator' ? 'Switching...' : '🔍 Operator Portal'}
             </button>
             <button
-              onClick={() => quickDemoLogin('manager')}
-              className="bg-amber-700/80 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs font-medium transition-all shadow-sm"
-              title="Centre Manager (Approval & Payments)"
+              onClick={() => handleRoleSwitch('manager')}
+              disabled={!!loadingRole}
+              className="bg-amber-700/80 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs font-medium transition-all shadow-sm active:scale-95 disabled:opacity-50"
+              title="Centre Manager (Inspection Grading & Payment Approvals)"
             >
-              💼 Manager
+              {loadingRole === 'manager' ? 'Switching...' : '💼 Manager Portal'}
             </button>
             <button
-              onClick={() => quickDemoLogin('admin')}
-              className="bg-purple-700/80 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs font-medium transition-all shadow-sm"
-              title="Platform Administrator"
+              onClick={() => handleRoleSwitch('admin')}
+              disabled={!!loadingRole}
+              className="bg-purple-700/80 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs font-medium transition-all shadow-sm active:scale-95 disabled:opacity-50"
+              title="State Administrator (Executive Dashboard & Audit)"
             >
-              ⚙️ Admin
+              {loadingRole === 'admin' ? 'Switching...' : '⚙️ Admin Portal'}
             </button>
             {user && (
               <button
-                onClick={logout}
+                onClick={() => {
+                  logout();
+                  navigate('/');
+                }}
                 className="bg-red-900/60 hover:bg-red-800 text-red-200 px-2 py-1 rounded text-xs transition-all"
               >
                 Sign Out
