@@ -10,6 +10,7 @@ import { Select } from '../../components/ui/Select';
 import { Badge } from '../../components/ui/Badge';
 import { Alert } from '../../components/ui/Alert';
 import { DigitalReceiptModal } from '../../components/DigitalReceiptModal';
+import { playNotificationSound, playSuccessSound } from '../../utils/sound';
 import {
   Scale,
   CheckCircle2,
@@ -18,6 +19,8 @@ import {
   Printer,
   FileCheck,
   AlertCircle,
+  CheckCheck,
+  Filter,
 } from 'lucide-react';
 
 export const ProcurementInspectionPage: React.FC = () => {
@@ -26,6 +29,7 @@ export const ProcurementInspectionPage: React.FC = () => {
 
   const [selectedReceipt, setSelectedReceipt] = useState<ProcurementRecord | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [filterTab, setFilterTab] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
 
   // New Inspection Form State
   const [bookingId, setBookingId] = useState('');
@@ -37,16 +41,35 @@ export const ProcurementInspectionPage: React.FC = () => {
   const isManagerOrAdmin = user?.role === 'CENTRE_MANAGER' || user?.role === 'PLATFORM_ADMIN';
 
   // Fetch checked-in bookings eligible for inspection
-  const { data: bookings = [] } = useQuery<Booking[]>({
+  const { data: bookings = [], refetch: refetchBookings } = useQuery<Booking[]>({
     queryKey: ['inspectable-bookings'],
     queryFn: () => apiRequest('/bookings/my-bookings'),
+    refetchInterval: 3000,
   });
 
-  // Fetch all procurement records
+  // Fetch all procurement records with real-time sync
   const { data: records = [], refetch } = useQuery<ProcurementRecord[]>({
     queryKey: ['admin-procurements'],
     queryFn: () => apiRequest('/procurement'),
+    refetchInterval: 3000,
   });
+
+  // Filter out any grain consignment that has ALREADY been inspected or completed
+  const uninspectedBookings = bookings.filter((b) => {
+    const hasRecordInDb = !!b.procurementRecord;
+    const hasRecordInTable = records.some((r) => r.bookingId === b.id);
+    const isCompleted = b.status === 'COMPLETED' || b.status === 'CANCELLED';
+    return !hasRecordInDb && !hasRecordInTable && !isCompleted;
+  });
+
+  const handleBookingSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    setBookingId(id);
+    const selected = uninspectedBookings.find((b) => b.id === id);
+    if (selected && selected.estimatedQuantity) {
+      setSubmittedWeight(selected.estimatedQuantity);
+    }
+  };
 
   // Submit Inspection Mutation
   const inspectMutation = useMutation({
@@ -56,10 +79,18 @@ export const ProcurementInspectionPage: React.FC = () => {
         body: JSON.stringify(payload),
       }),
     onSuccess: (data) => {
-      setStatusMessage(`Procurement record ${data.receiptNumber} recorded successfully! Assigned Grade: ${data.qualityGrade}`);
+      playNotificationSound();
+      setStatusMessage(`Consignment ${data.receiptNumber} recorded! Quality Grade: ${data.qualityGrade}. Grain lot moved to Manager Approval Ledger.`);
       queryClient.invalidateQueries({ queryKey: ['admin-procurements'] });
+      queryClient.invalidateQueries({ queryKey: ['inspectable-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
+      refetch();
+      refetchBookings();
       setBookingId('');
       setInspectionNotes('');
+      setFilterTab('PENDING');
+      setTimeout(() => setStatusMessage(null), 6000);
     },
     onError: (err: any) => {
       setStatusMessage(`Error: ${err.message}`);
@@ -74,8 +105,20 @@ export const ProcurementInspectionPage: React.FC = () => {
         body: JSON.stringify({ action, notes }),
       }),
     onSuccess: (data) => {
-      setStatusMessage(`Procurement status updated to ${data.status}. Linked payment ledger initialized.`);
+      playSuccessSound();
+      const isApproved = data.status === 'APPROVED';
+      setStatusMessage(
+        isApproved
+          ? `Consignment ${data.receiptNumber || ''} APPROVED! Grain marked COMPLETED and DBT payment ledger initialized.`
+          : `Consignment REJECTED. Grain marked as rejected.`
+      );
       queryClient.invalidateQueries({ queryKey: ['admin-procurements'] });
+      queryClient.invalidateQueries({ queryKey: ['inspectable-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
+      refetch();
+      refetchBookings();
+      setTimeout(() => setStatusMessage(null), 6000);
     },
     onError: (err: any) => {
       setStatusMessage(`Error: ${err.message}`);
@@ -85,7 +128,7 @@ export const ProcurementInspectionPage: React.FC = () => {
   const handleInspectSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!bookingId) {
-      alert('Please select a checked-in booking reference');
+      alert('Please select a checked-in grain booking reference');
       return;
     }
     inspectMutation.mutate({
@@ -125,20 +168,29 @@ export const ProcurementInspectionPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
-                Select Checked-In Booking
+                Select Arrived Grain Lot ({uninspectedBookings.length} Awaiting Test)
               </label>
               <Select
                 value={bookingId}
-                onChange={(e) => setBookingId(e.target.value)}
+                onChange={handleBookingSelect}
                 required
               >
-                <option value="">-- Choose Arrival Booking --</option>
-                {bookings.map((b) => (
+                <option value="">
+                  {uninspectedBookings.length === 0
+                    ? '-- All Arrived Grain Lots Have Been Inspected --'
+                    : '-- Choose Arrived Grain Consignment --'}
+                </option>
+                {uninspectedBookings.map((b) => (
                   <option key={b.id} value={b.id}>
-                    {b.bookingReference} - {b.commodity.name} ({b.estimatedQuantity} Qtl)
+                    {b.bookingReference} • {b.commodity?.name || 'Grain'} • {b.estimatedQuantity} Qtl ({b.farmer?.farmerProfile?.fullName || 'Farmer'})
                   </option>
                 ))}
               </Select>
+              {uninspectedBookings.length === 0 && (
+                <p className="text-[11px] text-emerald-600 mt-1 flex items-center gap-1 font-medium">
+                  <CheckCheck className="w-3.5 h-3.5" /> All arrived grain lots have been tested. Each grain consignment can only be inspected once.
+                </p>
+              )}
             </div>
 
             <div>
@@ -148,7 +200,7 @@ export const ProcurementInspectionPage: React.FC = () => {
                 step="0.1"
                 min="0.1"
                 value={submittedWeight}
-                onChange={(e) => setSubmittedWeight(parseFloat(e.target.value))}
+                onChange={(e) => setSubmittedWeight(parseFloat(e.target.value) || 0)}
                 required
               />
             </div>
@@ -157,34 +209,34 @@ export const ProcurementInspectionPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <Input
-                label="Moisture Content % (Max 14% FAQ)"
+                label="Moisture Content % (Max 14% FAQ Standard)"
                 type="number"
                 step="0.1"
                 min="0"
                 max="100"
                 value={moistureContent}
-                onChange={(e) => setMoistureContent(parseFloat(e.target.value))}
+                onChange={(e) => setMoistureContent(parseFloat(e.target.value) || 0)}
                 required
               />
             </div>
 
             <div>
               <Input
-                label="Foreign Matter / Dockage % (Max 2%)"
+                label="Foreign Matter / Dockage % (Max 2% Standard)"
                 type="number"
                 step="0.1"
                 min="0"
                 max="100"
                 value={foreignMatterPercent}
-                onChange={(e) => setForeignMatterPercent(parseFloat(e.target.value))}
+                onChange={(e) => setForeignMatterPercent(parseFloat(e.target.value) || 0)}
                 required
               />
             </div>
 
             <div>
               <Input
-                label="Inspector Remarks"
-                placeholder="Clean golden grains, no weevils..."
+                label="Assayer / Inspector Remarks"
+                placeholder="Clean golden grains, standard dockage..."
                 value={inspectionNotes}
                 onChange={(e) => setInspectionNotes(e.target.value)}
               />
@@ -194,37 +246,87 @@ export const ProcurementInspectionPage: React.FC = () => {
           {/* Dynamic Grade Calculation Preview */}
           <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex flex-wrap items-center justify-between text-xs text-emerald-900 font-semibold gap-2">
             <span>
-              Estimated Grade: <strong className="uppercase">{moistureContent > 16 ? 'REJECTED' : moistureContent > 14 ? 'GRADE C' : moistureContent > 12 ? 'GRADE B' : 'GRADE A'}</strong>
+              Assigned Quality: <strong className="uppercase">{moistureContent > 16 ? 'REJECTED' : moistureContent > 14 ? 'GRADE C' : moistureContent > 12 ? 'GRADE B' : 'GRADE A'}</strong>
             </span>
             <span>
-              Moisture Standard: {moistureContent <= 12 ? 'Optimal (0% deduction)' : 'Adjustment applies'}
+              Moisture Deduction: {moistureContent <= 12 ? 'Zero (Optimal Dry Grain)' : moistureContent <= 14 ? 'Minor FAQ Dockage' : 'Standard Moisture Cut'}
             </span>
             <Button
               type="submit"
               size="sm"
               isLoading={inspectMutation.isPending}
-              className="font-bold"
+              disabled={uninspectedBookings.length === 0 || !bookingId}
+              className="font-bold bg-emerald-600 hover:bg-emerald-700"
             >
-              Save Inspection & Submit to Manager &rarr;
+              Log Scale Test & Forward to Manager &rarr;
             </Button>
           </div>
         </form>
       </Card>
 
-      {/* Roster of Records awaiting Manager Approval */}
+      {/* Roster of Records with Tabs */}
       <Card>
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="font-bold text-sm text-slate-900">
-            Procurement Ledger ({records.length} Records)
-          </h3>
-          <Button size="sm" variant="outline" onClick={() => refetch()} className="text-xs">
-            Refresh
-          </Button>
+        <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-sm text-slate-900">
+              Procurement & Grading Ledger
+            </h3>
+            <Badge variant="neutral" className="text-xs">
+              {records.length} Total
+            </Badge>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
+            <button
+              onClick={() => setFilterTab('PENDING')}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
+                filterTab === 'PENDING'
+                  ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              Awaiting Approval ({records.filter((r) => r.status === 'UNDER_INSPECTION').length})
+            </button>
+            <button
+              onClick={() => setFilterTab('APPROVED')}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
+                filterTab === 'APPROVED'
+                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Approved & DBT ({records.filter((r) => r.status === 'APPROVED' || r.status === 'PAID').length})
+            </button>
+            <button
+              onClick={() => setFilterTab('REJECTED')}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
+                filterTab === 'REJECTED'
+                  ? 'bg-red-100 text-red-900 border border-red-300'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              Rejected ({records.filter((r) => r.status === 'REJECTED').length})
+            </button>
+            <button
+              onClick={() => setFilterTab('ALL')}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
+                filterTab === 'ALL'
+                  ? 'bg-slate-800 text-white'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              All Records
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
+            <thead className="bg-slate-50 text-slate-500 border-b border-slate-100 font-semibold">
               <tr>
                 <th className="p-3.5">Receipt No</th>
                 <th className="p-3.5">Farmer</th>
@@ -238,68 +340,90 @@ export const ProcurementInspectionPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {records.map((r) => {
-                const isAwaitingApproval = r.status === 'UNDER_INSPECTION';
+              {records
+                .filter((r) => {
+                  if (filterTab === 'PENDING') return r.status === 'UNDER_INSPECTION';
+                  if (filterTab === 'APPROVED') return r.status === 'APPROVED' || r.status === 'PAID';
+                  if (filterTab === 'REJECTED') return r.status === 'REJECTED';
+                  return true;
+                })
+                .map((r) => {
+                  const isAwaitingApproval = r.status === 'UNDER_INSPECTION';
+                  const isApproved = r.status === 'APPROVED' || r.status === 'PAID';
 
-                return (
-                  <tr key={r.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="p-3.5 font-mono font-bold text-slate-900">{r.receiptNumber}</td>
-                    <td className="p-3.5 font-semibold text-slate-800">
-                      {r.farmer.farmerProfile?.fullName || 'Farmer'}
-                    </td>
-                    <td className="p-3.5 font-medium">{r.commodity.name}</td>
-                    <td className="p-3.5 font-mono">{r.submittedWeight} {r.unit}</td>
-                    <td className="p-3.5 font-mono">{r.moistureContent}%</td>
-                    <td className="p-3.5">
-                      <Badge variant={r.qualityGrade === 'GRADE_A' ? 'success' : 'warning'}>
-                        {r.qualityGrade}
-                      </Badge>
-                    </td>
-                    <td className="p-3.5 font-bold font-mono text-emerald-800">
-                      ₹{r.netPayable.toLocaleString('en-IN')}
-                    </td>
-                    <td className="p-3.5">
-                      <Badge variant={r.status === 'PAID' ? 'success' : isAwaitingApproval ? 'warning' : 'harvest'}>
-                        {r.status}
-                      </Badge>
-                    </td>
-                    <td className="p-3.5 text-right space-x-1.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setSelectedReceipt(r)}
-                        className="text-[11px]"
-                      >
-                        <Printer className="w-3 h-3 mr-1 inline" /> Receipt
-                      </Button>
+                  return (
+                    <tr key={r.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="p-3.5 font-mono font-bold text-slate-900">{r.receiptNumber}</td>
+                      <td className="p-3.5 font-semibold text-slate-800">
+                        {r.farmer?.farmerProfile?.fullName || 'Farmer'}
+                      </td>
+                      <td className="p-3.5 font-medium">{r.commodity?.name}</td>
+                      <td className="p-3.5 font-mono">{r.submittedWeight} {r.unit}</td>
+                      <td className="p-3.5 font-mono">{r.moistureContent}%</td>
+                      <td className="p-3.5">
+                        <Badge variant={r.qualityGrade === 'GRADE_A' ? 'success' : r.qualityGrade === 'REJECTED' ? 'danger' : 'warning'}>
+                          {r.qualityGrade}
+                        </Badge>
+                      </td>
+                      <td className="p-3.5 font-bold font-mono text-emerald-800">
+                        ₹{(r.netPayable || 0).toLocaleString('en-IN')}
+                      </td>
+                      <td className="p-3.5">
+                        <Badge variant={isApproved ? 'success' : isAwaitingApproval ? 'warning' : 'danger'}>
+                          {r.status === 'UNDER_INSPECTION' ? 'AWAITING APPROVAL' : r.status}
+                        </Badge>
+                      </td>
+                      <td className="p-3.5 text-right space-x-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedReceipt(r)}
+                          className="text-[11px]"
+                        >
+                          <Printer className="w-3 h-3 mr-1 inline" /> Certified Receipt
+                        </Button>
 
-                      {isAwaitingApproval && isManagerOrAdmin && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() =>
-                              decisionMutation.mutate({ recordId: r.id, action: 'APPROVE' })
-                            }
-                            className="text-[11px] bg-emerald-600 hover:bg-emerald-700"
-                          >
-                            <CheckCircle2 className="w-3 h-3 mr-1 inline" /> Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                              decisionMutation.mutate({ recordId: r.id, action: 'REJECT' })
-                            }
-                            className="text-[11px] text-red-600 hover:bg-red-50"
-                          >
-                            <XCircle className="w-3 h-3 mr-1 inline" /> Reject
-                          </Button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                        {isAwaitingApproval && isManagerOrAdmin && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                decisionMutation.mutate({ recordId: r.id, action: 'APPROVE' })
+                              }
+                              isLoading={decisionMutation.isPending}
+                              className="text-[11px] bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+                            >
+                              <CheckCircle2 className="w-3 h-3 mr-1 inline" /> Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                decisionMutation.mutate({ recordId: r.id, action: 'REJECT' })
+                              }
+                              isLoading={decisionMutation.isPending}
+                              className="text-[11px] text-red-600 hover:bg-red-50"
+                            >
+                              <XCircle className="w-3 h-3 mr-1 inline" /> Reject
+                            </Button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              {records.filter((r) => {
+                if (filterTab === 'PENDING') return r.status === 'UNDER_INSPECTION';
+                if (filterTab === 'APPROVED') return r.status === 'APPROVED' || r.status === 'PAID';
+                if (filterTab === 'REJECTED') return r.status === 'REJECTED';
+                return true;
+              }).length === 0 && (
+                <tr>
+                  <td colSpan={9} className="p-8 text-center text-slate-400">
+                    No consignments found in this tab.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

@@ -222,27 +222,138 @@ let mockQueueEntries = [
     };
   }
 
+let mockProcurementRecords: any[] = [
+  {
+    id: 'proc-1',
+    receiptNumber: 'RCP-2026-0909-001',
+    bookingId: 'b-1',
+    centreId: 'centre-1',
+    farmerId: 'farmer-1',
+    farmer: {
+      phone: '+91 98230 11001',
+      farmerProfile: { fullName: 'Rameshwar Patil', village: 'Kalamna', district: 'Nagpur' },
+    },
+    centre: {
+      name: 'Nagpur APMC Procurement Hub',
+      code: 'NGP-01',
+      address: 'Kalamna Market Yard, Ring Road, Nagpur, Maharashtra 440008',
+    },
+    commodity: { name: 'Soybean (Yellow)', code: 'SOY-01', unit: 'Quintal' },
+    submittedWeight: 50.0,
+    acceptedWeight: 50.0,
+    rejectedWeight: 0,
+    unit: 'Quintal',
+    qualityGrade: 'GRADE_A',
+    moistureContent: 11.2,
+    foreignMatterPercent: 0.8,
+    ratePerUnit: 4892,
+    grossPayable: 244600,
+    deductions: 0,
+    netPayable: 244600,
+    status: 'APPROVED',
+    payment: {
+      status: 'SUCCESS',
+      amount: 244600,
+      paymentMode: 'DIRECT_BENEFIT_TRANSFER',
+      transactionReference: 'DBT-PFMS-2026-98124',
+    },
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
+  },
+  {
+    id: 'proc-2',
+    receiptNumber: 'RCP-2026-0909-002',
+    bookingId: 'b-2',
+    centreId: 'centre-1',
+    farmerId: 'farmer-2',
+    farmer: {
+      phone: '+91 98230 11002',
+      farmerProfile: { fullName: 'Suresh Deshmukh', village: 'Hingna', district: 'Nagpur' },
+    },
+    centre: {
+      name: 'Nagpur APMC Procurement Hub',
+      code: 'NGP-01',
+      address: 'Kalamna Market Yard, Ring Road, Nagpur, Maharashtra 440008',
+    },
+    commodity: { name: 'Wheat (Sharbati)', code: 'WHT-01', unit: 'Quintal' },
+    submittedWeight: 65.0,
+    acceptedWeight: 65.0,
+    rejectedWeight: 0,
+    unit: 'Quintal',
+    qualityGrade: 'GRADE_B',
+    moistureContent: 13.1,
+    foreignMatterPercent: 1.1,
+    ratePerUnit: 2206.75,
+    grossPayable: 147875,
+    deductions: 4436,
+    netPayable: 143439,
+    status: 'UNDER_INSPECTION',
+    payment: null,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+  if (endpoint.includes('/procurement/inspect')) {
+    try {
+      const body = typeof options.body === 'string' ? JSON.parse(options.body) : {};
+      const newRec = {
+        id: `proc-${Date.now()}`,
+        receiptNumber: `REC-2026-NGP-${Date.now().toString().slice(-4)}`,
+        bookingId: body.bookingId,
+        centreId: 'centre-1',
+        farmerId: 'farmer-1',
+        farmer: {
+          phone: '+91 98230 11001',
+          farmerProfile: { fullName: 'Rameshwar Patil', village: 'Kalamna', district: 'Nagpur' },
+        },
+        centre: {
+          name: 'Nagpur APMC Procurement Hub',
+          code: 'NGP-01',
+          address: 'Kalamna Market Yard, Ring Road, Nagpur, Maharashtra 440008',
+        },
+        commodity: { name: 'Soybean (Yellow)', code: 'SOY-01', unit: 'Quintal' },
+        submittedWeight: Number(body.submittedWeight || 50),
+        acceptedWeight: Number(body.submittedWeight || 50),
+        rejectedWeight: 0,
+        unit: 'Quintal',
+        qualityGrade: (body.moistureContent || 0) > 14 ? 'GRADE_C' : (body.moistureContent || 0) > 12 ? 'GRADE_B' : 'GRADE_A',
+        moistureContent: Number(body.moistureContent || 11.5),
+        foreignMatterPercent: Number(body.foreignMatterPercent || 0.8),
+        ratePerUnit: 4892,
+        grossPayable: Number(body.submittedWeight || 50) * 4892,
+        deductions: 0,
+        netPayable: Number(body.submittedWeight || 50) * 4892,
+        status: 'UNDER_INSPECTION',
+        payment: null,
+        createdAt: new Date().toISOString(),
+      };
+      mockProcurementRecords.unshift(newRec);
+      return newRec;
+    } catch (e) {}
+  }
+
+  if (endpoint.includes('/decision')) {
+    try {
+      const body = typeof options.body === 'string' ? JSON.parse(options.body) : {};
+      const recId = endpoint.split('/')[2];
+      const target = mockProcurementRecords.find((r) => r.id === recId);
+      if (target) {
+        target.status = body.action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+        if (target.status === 'APPROVED') {
+          target.payment = {
+            status: 'PENDING',
+            amount: target.netPayable,
+            paymentMode: 'DIRECT_BENEFIT_TRANSFER',
+            transactionReference: `DBT-PFMS-${Date.now().toString().slice(-6)}`,
+          };
+        }
+        return target;
+      }
+    } catch (e) {}
+    return { success: true, status: 'APPROVED' };
+  }
+
   if (endpoint.startsWith('/procurement')) {
-    return [
-      {
-        id: 'proc-1',
-        receiptNumber: 'RCP-2026-0909-001',
-        farmerName: 'Rameshwar Patil',
-        commodityName: 'Soyabean',
-        submittedWeight: 50.0,
-        approvedWeight: 49.2,
-        moistureContent: 11.2,
-        qualityGrade: 'Grade A',
-        mspPerQuintal: 4892,
-        grossAmount: 240686.4,
-        deductionsAmount: 2150.0,
-        netPayableAmount: 238536.4,
-        paymentStatus: 'APPROVED',
-        dbtReference: 'DBT-PFMS-2026-98124',
-        blockchainHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-        inspectedAt: new Date().toISOString(),
-      },
-    ];
+    return [...mockProcurementRecords];
   }
 
   if (endpoint.startsWith('/products')) {

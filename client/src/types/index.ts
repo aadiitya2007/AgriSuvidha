@@ -120,6 +120,7 @@ export interface Booking {
   centre: Centre;
   commodity: { id: string; name: string; code: string; minMspPrice: number; unit: string };
   slot: Slot;
+  farmer?: { phone: string; farmerProfile?: FarmerProfile };
   queueEntry?: QueueEntry;
   activeOtp?: string;
   activeQr?: string;
@@ -142,6 +143,7 @@ export interface QueueEntry {
 
 export interface ProcurementRecord {
   id: string;
+  bookingId?: string;
   receiptNumber: string;
   submittedWeight: number;
   acceptedWeight: number;

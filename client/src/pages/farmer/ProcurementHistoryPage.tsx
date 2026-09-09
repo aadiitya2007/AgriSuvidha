@@ -23,6 +23,7 @@ export const ProcurementHistoryPage: React.FC = () => {
   const { data: records = [], isLoading } = useQuery<ProcurementRecord[]>({
     queryKey: ['procurements'],
     queryFn: () => apiRequest('/procurement'),
+    refetchInterval: 3000,
   });
 
   return (
