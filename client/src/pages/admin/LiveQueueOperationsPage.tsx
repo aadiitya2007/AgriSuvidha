@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '../../services/api';
+import { apiRequest, API_BASE } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Centre, QueueEntry } from '../../types';
 import { Card } from '../../components/ui/Card';
@@ -18,6 +18,7 @@ import {
   Clock,
   Truck,
   RotateCw,
+  Radio,
 } from 'lucide-react';
 
 export const LiveQueueOperationsPage: React.FC = () => {
@@ -27,6 +28,7 @@ export const LiveQueueOperationsPage: React.FC = () => {
   const [selectedCentreId, setSelectedCentreId] = useState<string>('');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [sseConnected, setSseConnected] = useState(false);
 
   // Fetch Centres
   const { data: centres = [] } = useQuery<Centre[]>({
@@ -60,8 +62,38 @@ export const LiveQueueOperationsPage: React.FC = () => {
     queryKey: ['admin-queue', selectedCentreId],
     queryFn: () => apiRequest(`/queue/${selectedCentreId}`),
     enabled: !!selectedCentreId,
-    refetchInterval: 5000,
+    refetchInterval: 2000, // Fast 2-second real-time sync
   });
+
+  // Server-Sent Events (SSE) Live Connection for Operator Desk
+  React.useEffect(() => {
+    if (!selectedCentreId) return;
+
+    const sseUrl = `${API_BASE}/queue/${selectedCentreId}/stream`;
+    const eventSource = new EventSource(sseUrl);
+
+    eventSource.onopen = () => {
+      setSseConnected(true);
+    };
+
+    const handleUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-queue', selectedCentreId] });
+      queryClient.invalidateQueries({ queryKey: ['queue', selectedCentreId] });
+      refetch();
+    };
+
+    eventSource.addEventListener('QUEUE_UPDATE', handleUpdate);
+    eventSource.onmessage = handleUpdate;
+
+    eventSource.onerror = () => {
+      setSseConnected(false);
+    };
+
+    return () => {
+      eventSource.close();
+      setSseConnected(false);
+    };
+  }, [selectedCentreId, queryClient, refetch]);
 
   // Call Next Token Mutation
   const callNextMutation = useMutation({
@@ -73,6 +105,8 @@ export const LiveQueueOperationsPage: React.FC = () => {
     onSuccess: (data) => {
       setStatusMessage(`Called Token ${data.tokenDisplay} to Weighbridge Gate!`);
       queryClient.invalidateQueries({ queryKey: ['admin-queue', selectedCentreId] });
+      queryClient.invalidateQueries({ queryKey: ['queue', selectedCentreId] });
+      refetch();
       setTimeout(() => setStatusMessage(null), 4000);
     },
     onError: (err: any) => {
@@ -89,6 +123,8 @@ export const LiveQueueOperationsPage: React.FC = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-queue', selectedCentreId] });
+      queryClient.invalidateQueries({ queryKey: ['queue', selectedCentreId] });
+      refetch();
     },
   });
 
@@ -100,9 +136,12 @@ export const LiveQueueOperationsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center flex-wrap gap-2">
             <Users className="w-8 h-8 text-emerald-600" />
             Weighbridge Queue Control Desk
+            <Badge variant="success" className="text-[10px] uppercase tracking-widest flex items-center gap-1 py-0.5">
+              <Radio className="w-3 h-3 animate-pulse text-emerald-600" /> Live Realtime Sync
+            </Badge>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
             Direct token call-outs, fast QR gate check-ins, and live weighing queue sequencing.

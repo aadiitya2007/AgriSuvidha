@@ -3,6 +3,7 @@ import { AppError } from '../middleware/errorHandler.middleware';
 import { verifyAndDecodeQrToken, hashValue } from '../utils/crypto';
 import { TokenType, QueueStatus, BookingStatus } from '@prisma/client';
 import { queueService } from './queue.service';
+import { sseManager } from '../utils/sse';
 import { logger } from '../utils/logger';
 
 export class VerificationService {
@@ -128,16 +129,65 @@ export class VerificationService {
         });
       }
 
-      // If already redeemed, return existing queue entry gracefully
+      // If already redeemed, ensure queue entry is active and broadcast live update
       if (tokenInDb.isUsed) {
-        const existingQueue = await prisma.queueEntry.findUnique({
+        let existingQueue = await prisma.queueEntry.findUnique({
           where: { bookingId },
         });
         const booking = await prisma.booking.findUnique({
           where: { id: bookingId },
-          include: { farmer: { include: { farmerProfile: true } }, commodity: true },
+          include: { farmer: { include: { farmerProfile: true } }, commodity: true, centre: true },
         });
-        if (booking && existingQueue) {
+        if (booking) {
+          if (!existingQueue) {
+            const lastToken = await prisma.queueEntry.findFirst({
+              where: { centreId },
+              orderBy: { tokenNumber: 'desc' },
+            });
+            const nextTokenNum = (lastToken?.tokenNumber || 0) + 1;
+            const commodityPrefix = booking.commodity.code.split('-')[0] || 'C';
+            const centrePrefix = booking.centre.code.split('-')[1] || 'CTR';
+            const tokenDisplay = `${centrePrefix}-${commodityPrefix}-${String(nextTokenNum).padStart(3, '0')}`;
+            existingQueue = await prisma.queueEntry.create({
+              data: {
+                centreId,
+                bookingId,
+                farmerId: booking.farmerId,
+                tokenNumber: nextTokenNum,
+                tokenDisplay,
+                status: QueueStatus.WAITING,
+                peopleAhead: await prisma.queueEntry.count({ where: { centreId, status: QueueStatus.WAITING } }),
+                estimatedWaitMinutes: 15,
+              },
+            });
+          } else if (existingQueue.status === QueueStatus.SERVED || existingQueue.status === QueueStatus.NO_SHOW) {
+            existingQueue = await prisma.queueEntry.update({
+              where: { id: existingQueue.id },
+              data: {
+                status: QueueStatus.WAITING,
+                calledAt: null,
+                completedAt: null,
+              },
+            });
+          }
+
+          await prisma.booking.update({
+            where: { id: bookingId },
+            data: { status: BookingStatus.CHECKED_IN },
+          });
+
+          // Broadcast real-time SSE update so all dashboards refresh immediately!
+          sseManager.broadcastToCentre(centreId, 'QUEUE_UPDATE', {
+            type: 'CHECK_IN',
+            tokenDisplay: existingQueue.tokenDisplay,
+            centreId,
+          });
+          sseManager.broadcastGlobal('QUEUE_UPDATE', {
+            type: 'CHECK_IN',
+            tokenDisplay: existingQueue.tokenDisplay,
+            centreId,
+          });
+
           return {
             verified: true,
             alreadyCheckedIn: true,
@@ -150,7 +200,7 @@ export class VerificationService {
               estimatedQuantity: booking.estimatedQuantity,
             },
             queueToken: existingQueue.tokenDisplay,
-            message: `Farmer already checked in. Active Token: ${existingQueue.tokenDisplay}`,
+            message: `Farmer checked in. Active Token: ${existingQueue.tokenDisplay}`,
           };
         }
       }
@@ -244,14 +294,63 @@ export class VerificationService {
       }
 
       if (tokenInDb.isUsed) {
-        const existingQueue = await prisma.queueEntry.findUnique({
+        let existingQueue = await prisma.queueEntry.findUnique({
           where: { bookingId: tokenInDb.bookingId },
         });
         const booking = await prisma.booking.findUnique({
           where: { id: tokenInDb.bookingId },
-          include: { farmer: { include: { farmerProfile: true } }, commodity: true },
+          include: { farmer: { include: { farmerProfile: true } }, commodity: true, centre: true },
         });
-        if (booking && existingQueue) {
+        if (booking) {
+          if (!existingQueue) {
+            const lastToken = await prisma.queueEntry.findFirst({
+              where: { centreId },
+              orderBy: { tokenNumber: 'desc' },
+            });
+            const nextTokenNum = (lastToken?.tokenNumber || 0) + 1;
+            const commodityPrefix = booking.commodity.code.split('-')[0] || 'C';
+            const centrePrefix = booking.centre.code.split('-')[1] || 'CTR';
+            const tokenDisplay = `${centrePrefix}-${commodityPrefix}-${String(nextTokenNum).padStart(3, '0')}`;
+            existingQueue = await prisma.queueEntry.create({
+              data: {
+                centreId,
+                bookingId: booking.id,
+                farmerId: booking.farmerId,
+                tokenNumber: nextTokenNum,
+                tokenDisplay,
+                status: QueueStatus.WAITING,
+                peopleAhead: await prisma.queueEntry.count({ where: { centreId, status: QueueStatus.WAITING } }),
+                estimatedWaitMinutes: 15,
+              },
+            });
+          } else if (existingQueue.status === QueueStatus.SERVED || existingQueue.status === QueueStatus.NO_SHOW) {
+            existingQueue = await prisma.queueEntry.update({
+              where: { id: existingQueue.id },
+              data: {
+                status: QueueStatus.WAITING,
+                calledAt: null,
+                completedAt: null,
+              },
+            });
+          }
+
+          await prisma.booking.update({
+            where: { id: booking.id },
+            data: { status: BookingStatus.CHECKED_IN },
+          });
+
+          // Broadcast real-time SSE update so all dashboards refresh immediately!
+          sseManager.broadcastToCentre(centreId, 'QUEUE_UPDATE', {
+            type: 'CHECK_IN',
+            tokenDisplay: existingQueue.tokenDisplay,
+            centreId,
+          });
+          sseManager.broadcastGlobal('QUEUE_UPDATE', {
+            type: 'CHECK_IN',
+            tokenDisplay: existingQueue.tokenDisplay,
+            centreId,
+          });
+
           return {
             verified: true,
             alreadyCheckedIn: true,
@@ -264,7 +363,7 @@ export class VerificationService {
               estimatedQuantity: booking.estimatedQuantity,
             },
             queueToken: existingQueue.tokenDisplay,
-            message: `Farmer already checked in. Active Token: ${existingQueue.tokenDisplay}`,
+            message: `Farmer checked in. Active Token: ${existingQueue.tokenDisplay}`,
           };
         }
       }
@@ -274,7 +373,7 @@ export class VerificationService {
     }
 
     // Mark token as used and check in farmer
-    return await prisma.$transaction(async (tx) => {
+    const txResult = await prisma.$transaction(async (tx) => {
       await tx.verificationToken.update({
         where: { id: verifiedTokenRecord.id },
         data: {
@@ -343,7 +442,21 @@ export class VerificationService {
             estimatedWaitMinutes: 15,
           },
         });
+      } else if (queueEntry.status === QueueStatus.SERVED || queueEntry.status === QueueStatus.NO_SHOW) {
+        queueEntry = await tx.queueEntry.update({
+          where: { id: queueEntry.id },
+          data: {
+            status: QueueStatus.WAITING,
+            calledAt: null,
+            completedAt: null,
+          },
+        });
       }
+
+      await tx.booking.update({
+        where: { id: booking.id },
+        data: { status: BookingStatus.CHECKED_IN },
+      });
 
       return {
         verified: true,
@@ -358,6 +471,22 @@ export class VerificationService {
         queueToken: queueEntry?.tokenDisplay,
       };
     });
+
+    // Broadcast live SSE update so all screens update instantaneously
+    if (txResult.queueToken) {
+      sseManager.broadcastToCentre(centreId, 'QUEUE_UPDATE', {
+        type: 'CHECK_IN',
+        tokenDisplay: txResult.queueToken,
+        centreId,
+      });
+      sseManager.broadcastGlobal('QUEUE_UPDATE', {
+        type: 'CHECK_IN',
+        tokenDisplay: txResult.queueToken,
+        centreId,
+      });
+    }
+
+    return txResult;
   }
 }
 

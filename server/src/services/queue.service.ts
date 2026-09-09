@@ -63,7 +63,7 @@ export class QueueService {
   }
 
   async checkInFarmerToQueue(bookingId: string, centreId: string, operatorUserId: string) {
-    return await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const booking = await tx.booking.findUnique({
         where: { id: bookingId },
         include: { centre: true, commodity: true, farmer: { include: { farmerProfile: true } } },
@@ -83,6 +83,17 @@ export class QueueService {
       });
 
       if (existingQueue) {
+        if (existingQueue.status === QueueStatus.SERVED || existingQueue.status === QueueStatus.NO_SHOW) {
+          const reactivated = await tx.queueEntry.update({
+            where: { id: existingQueue.id },
+            data: { status: QueueStatus.WAITING, calledAt: null, completedAt: null },
+          });
+          await tx.booking.update({
+            where: { id: bookingId },
+            data: { status: BookingStatus.CHECKED_IN },
+          });
+          return reactivated;
+        }
         return existingQueue;
       }
 
@@ -133,6 +144,20 @@ export class QueueService {
 
       return queueEntry;
     });
+
+    // Broadcast live SSE update
+    sseManager.broadcastToCentre(centreId, 'QUEUE_UPDATE', {
+      type: 'CHECK_IN',
+      tokenDisplay: result.tokenDisplay,
+      centreId,
+    });
+    sseManager.broadcastGlobal('QUEUE_UPDATE', {
+      type: 'CHECK_IN',
+      tokenDisplay: result.tokenDisplay,
+      centreId,
+    });
+
+    return result;
   }
 
   async callNextToken(centreId: string, operatorUserId: string) {
@@ -200,6 +225,12 @@ export class QueueService {
       tokenNumber: result.tokenNumber,
       centreId,
     });
+    sseManager.broadcastGlobal('QUEUE_UPDATE', {
+      type: 'TOKEN_CALLED',
+      calledToken: result.tokenDisplay,
+      tokenNumber: result.tokenNumber,
+      centreId,
+    });
 
     return result;
   }
@@ -231,6 +262,12 @@ export class QueueService {
 
     // Broadcast SSE update
     sseManager.broadcastToCentre(entry.centreId, 'QUEUE_UPDATE', {
+      type: 'STATUS_CHANGED',
+      entryId,
+      status,
+      centreId: entry.centreId,
+    });
+    sseManager.broadcastGlobal('QUEUE_UPDATE', {
       type: 'STATUS_CHANGED',
       entryId,
       status,

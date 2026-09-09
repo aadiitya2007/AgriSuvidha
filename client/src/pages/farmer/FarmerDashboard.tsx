@@ -43,10 +43,11 @@ export const FarmerDashboard: React.FC = () => {
   const [showRoadsideModal, setShowRoadsideModal] = useState(false);
   const [showPriceModal, setShowPriceModal] = useState(false);
 
-  // Fetch Bookings
+  // Fetch Bookings with live polling sync
   const { data: bookings = [], isLoading: loadingBookings } = useQuery<Booking[]>({
     queryKey: ['my-bookings'],
     queryFn: () => apiRequest('/bookings/my-bookings'),
+    refetchInterval: 3000,
   });
 
   // Fetch Procurements

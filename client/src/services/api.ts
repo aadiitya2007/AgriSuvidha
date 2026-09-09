@@ -1,5 +1,5 @@
 const envApiUrl = (import.meta as any).env?.VITE_API_URL;
-const API_BASE = envApiUrl ? `${envApiUrl.replace(/\/$/, '')}/api/v1` : '/api/v1';
+export const API_BASE = envApiUrl ? `${envApiUrl.replace(/\/$/, '')}/api/v1` : '/api/v1';
 
 export class ApiError extends Error {
   public code: string;
@@ -122,56 +122,103 @@ function getMockFallback(endpoint: string, options: RequestInit = {}): any {
     ];
   }
 
+let mockQueueEntries = [
+  {
+    id: 'q-1',
+    tokenNumber: 1,
+    tokenDisplay: 'TK-001',
+    bookingReference: 'KS-2026-NGP-001',
+    farmerName: 'Rameshwar Patil',
+    commodityName: 'Soyabean',
+    vehicleNumber: 'MH 31 AG 4412',
+    quantityQuintals: 50.0,
+    status: 'CALLED',
+    calledAt: new Date().toISOString(),
+    checkedInAt: new Date(Date.now() - 15 * 60000).toISOString(),
+    estimatedWaitMinutes: 5,
+  },
+  {
+    id: 'q-2',
+    tokenNumber: 2,
+    tokenDisplay: 'TK-002',
+    bookingReference: 'KS-2026-NGP-002',
+    farmerName: 'Suresh Deshmukh',
+    commodityName: 'Wheat (Sharbati)',
+    vehicleNumber: 'MH 31 BV 8890',
+    quantityQuintals: 65.0,
+    status: 'WAITING',
+    calledAt: null,
+    checkedInAt: new Date(Date.now() - 10 * 60000).toISOString(),
+    estimatedWaitMinutes: 15,
+  },
+  {
+    id: 'q-3',
+    tokenNumber: 3,
+    tokenDisplay: 'TK-003',
+    bookingReference: 'KS-2026-NGP-003',
+    farmerName: 'Sunita Tai Shinde',
+    commodityName: 'Cotton',
+    vehicleNumber: 'MH 31 CZ 1234',
+    quantityQuintals: 40.0,
+    status: 'WAITING',
+    calledAt: null,
+    checkedInAt: new Date(Date.now() - 5 * 60000).toISOString(),
+    estimatedWaitMinutes: 28,
+  },
+  {
+    id: 'q-4',
+    tokenNumber: 4,
+    tokenDisplay: 'TK-004',
+    bookingReference: 'KS-2026-NGP-004',
+    farmerName: 'Kisanrao Jadhav',
+    commodityName: 'Soybean',
+    vehicleNumber: 'MH 31 EE 5543',
+    quantityQuintals: 35.0,
+    status: 'WAITING',
+    calledAt: null,
+    checkedInAt: new Date(Date.now() - 2 * 60000).toISOString(),
+    estimatedWaitMinutes: 40,
+  },
+];
+
+  if (endpoint.includes('/queue/call-next')) {
+    const prevCalled = mockQueueEntries.find((e) => e.status === 'CALLED');
+    if (prevCalled) {
+      prevCalled.status = 'IN_INSPECTION';
+    }
+    const nextWaiting = mockQueueEntries.find((e) => e.status === 'WAITING');
+    if (nextWaiting) {
+      nextWaiting.status = 'CALLED';
+      nextWaiting.calledAt = new Date().toISOString();
+      return {
+        tokenDisplay: nextWaiting.tokenDisplay,
+        tokenNumber: nextWaiting.tokenNumber,
+        id: nextWaiting.id,
+      };
+    }
+    return { tokenDisplay: 'TK-001', tokenNumber: 1 };
+  }
+
+  if (endpoint.includes('/queue/status')) {
+    try {
+      const body = typeof options.body === 'string' ? JSON.parse(options.body) : {};
+      const target = mockQueueEntries.find((e) => e.id === body.entryId);
+      if (target && body.status) {
+        target.status = body.status;
+      }
+    } catch (e) {}
+    return { success: true };
+  }
+
   if (endpoint.includes('/queue')) {
+    const active = mockQueueEntries.find((e) => e.status === 'CALLED' || e.status === 'IN_INSPECTION');
+    const waiting = mockQueueEntries.filter((e) => e.status === 'WAITING');
     return {
       centreId: 'centre-1',
-      activeToken: { tokenDisplay: 'TK-001', id: 'q-1' },
-      totalInQueue: 12,
-      waitingCount: 5,
-      entries: [
-        {
-          id: 'q-1',
-          tokenNumber: 1,
-          tokenDisplay: 'TK-001',
-          bookingReference: 'KS-2026-NGP-001',
-          farmerName: 'Rameshwar Patil',
-          commodityName: 'Soyabean',
-          vehicleNumber: 'MH 31 AG 4412',
-          quantityQuintals: 50.0,
-          status: 'CALLED',
-          calledAt: new Date().toISOString(),
-          checkedInAt: new Date(Date.now() - 15 * 60000).toISOString(),
-          estimatedWaitMinutes: 5,
-        },
-        {
-          id: 'q-2',
-          tokenNumber: 2,
-          tokenDisplay: 'TK-002',
-          bookingReference: 'KS-2026-NGP-002',
-          farmerName: 'Suresh Deshmukh',
-          commodityName: 'Wheat (Sharbati)',
-          vehicleNumber: 'MH 31 BV 8890',
-          quantityQuintals: 65.0,
-          status: 'WAITING',
-          calledAt: null,
-          checkedInAt: new Date(Date.now() - 10 * 60000).toISOString(),
-          estimatedWaitMinutes: 15,
-        },
-        {
-          id: 'q-3',
-          tokenNumber: 3,
-          tokenDisplay: 'TK-003',
-          bookingReference: 'KS-2026-NGP-003',
-          farmerName: 'Sunita Tai Shinde',
-          commodityName: 'Cotton',
-          vehicleNumber: 'MH 31 CZ 1234',
-          quantityQuintals: 40.0,
-          status: 'WAITING',
-          calledAt: null,
-          checkedInAt: new Date(Date.now() - 5 * 60000).toISOString(),
-          estimatedWaitMinutes: 28,
-        },
-      ],
+      activeToken: active ? { tokenDisplay: active.tokenDisplay, id: active.id } : null,
+      totalInQueue: mockQueueEntries.length,
+      waitingCount: waiting.length,
+      entries: [...mockQueueEntries],
     };
   }
 

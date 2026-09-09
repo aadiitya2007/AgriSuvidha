@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '../../services/api';
+import { apiRequest, API_BASE } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Centre, QueueEntry } from '../../types';
 import { Card } from '../../components/ui/Card';
@@ -53,24 +53,25 @@ export const LiveQueuePage: React.FC = () => {
     queryKey: ['queue', selectedCentreId],
     queryFn: () => apiRequest(`/queue/${selectedCentreId}`),
     enabled: !!selectedCentreId,
-    refetchInterval: 10000, // 10s fallback polling
+    refetchInterval: 2000, // 2s fast real-time polling sync
   });
 
   // Server-Sent Events (SSE) Live Connection
   useEffect(() => {
     if (!selectedCentreId) return;
 
-    const eventSource = new EventSource(`/api/v1/queue/${selectedCentreId}/stream`);
+    const sseUrl = `${API_BASE}/queue/${selectedCentreId}/stream`;
+    const eventSource = new EventSource(sseUrl);
 
     eventSource.onopen = () => {
       setSseConnected(true);
     };
 
-    eventSource.addEventListener('QUEUE_UPDATE', (e) => {
-      // Invalidate queue query to instantly update token board
+    const handleUpdate = (e: MessageEvent) => {
+      // Invalidate and refetch immediately
       queryClient.invalidateQueries({ queryKey: ['queue', selectedCentreId] });
+      refetch();
       if (soundEnabled) {
-        // Optional audio beep / speech synthesis
         if ('speechSynthesis' in window) {
           try {
             const data = JSON.parse(e.data);
@@ -81,7 +82,10 @@ export const LiveQueuePage: React.FC = () => {
           } catch (err) {}
         }
       }
-    });
+    };
+
+    eventSource.addEventListener('QUEUE_UPDATE', handleUpdate);
+    eventSource.onmessage = handleUpdate;
 
     eventSource.onerror = () => {
       setSseConnected(false);
@@ -91,7 +95,7 @@ export const LiveQueuePage: React.FC = () => {
       eventSource.close();
       setSseConnected(false);
     };
-  }, [selectedCentreId, queryClient, soundEnabled]);
+  }, [selectedCentreId, queryClient, soundEnabled, refetch]);
 
   const currentCentre = centres.find((c) => c.id === selectedCentreId);
   const entries = queueData?.entries || [];
