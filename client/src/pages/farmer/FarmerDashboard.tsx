@@ -12,6 +12,7 @@ import { DigitalReceiptModal } from '../../components/DigitalReceiptModal';
 import { WeatherWidget } from '../../components/WeatherWidget';
 import { RoadsideSupportModal } from '../../components/RoadsideSupportModal';
 import { MarketPriceComparisonModal } from '../../components/MarketPriceComparisonModal';
+import { CancelBookingModal } from '../../components/CancelBookingModal';
 import { playNotificationSound } from '../../utils/sound';
 import { Link } from 'react-router-dom';
 import {
@@ -32,6 +33,8 @@ import {
   PhoneCall,
   CheckCircle2,
   Navigation,
+  AlertCircle,
+  XCircle,
 } from 'lucide-react';
 
 export const FarmerDashboard: React.FC = () => {
@@ -42,9 +45,14 @@ export const FarmerDashboard: React.FC = () => {
   const [selectedReceipt, setSelectedReceipt] = useState<ProcurementRecord | null>(null);
   const [showRoadsideModal, setShowRoadsideModal] = useState(false);
   const [showPriceModal, setShowPriceModal] = useState(false);
+  const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(null);
 
   // Fetch Bookings with live polling sync
-  const { data: bookings = [], isLoading: loadingBookings } = useQuery<Booking[]>({
+  const {
+    data: bookings = [],
+    isLoading: loadingBookings,
+    refetch: refetchBookings,
+  } = useQuery<Booking[]>({
     queryKey: ['my-bookings'],
     queryFn: () => apiRequest('/bookings/my-bookings'),
     refetchInterval: 3000,
@@ -206,6 +214,28 @@ export const FarmerDashboard: React.FC = () => {
                       Track Live Yard Queue &rarr;
                     </Button>
                   </Link>
+
+                  {/* Cancel Booking Action */}
+                  {(nextBooking.status === 'CONFIRMED' || nextBooking.status === 'PENDING') && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setCancellingBooking(nextBooking)}
+                      disabled={nextBooking.isCancellable === false}
+                      title={
+                        nextBooking.cancellationBlockedReason ||
+                        'Cancel slot (allowed up to 2 hours before start)'
+                      }
+                      className={`text-xs font-semibold flex items-center gap-1.5 ${
+                        nextBooking.isCancellable === false
+                          ? 'opacity-60 cursor-not-allowed border-slate-200 text-slate-400'
+                          : 'border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300'
+                      }`}
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      {nextBooking.isCancellable === false ? 'Cancellation Locked' : 'Cancel Slot'}
+                    </Button>
+                  )}
+
                   <Button
                     variant="ghost"
                     onClick={() => setShowPriceModal(true)}
@@ -214,6 +244,23 @@ export const FarmerDashboard: React.FC = () => {
                     <TrendingUp className="w-3.5 h-3.5" /> Compare Market Rates
                   </Button>
                 </div>
+
+                {/* Cancellation Policy / Cut-off Info */}
+                {(nextBooking.status === 'CONFIRMED' || nextBooking.status === 'PENDING') && (
+                  <div className="pt-1 text-[11px] flex items-center justify-between text-slate-500">
+                    {nextBooking.isCancellable === false && nextBooking.cancellationBlockedReason ? (
+                      <span className="text-amber-700 font-medium flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                        {nextBooking.cancellationBlockedReason}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                        Cancellations allowed up to 2 hours before arrival slot
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8 space-y-3">
@@ -510,6 +557,18 @@ export const FarmerDashboard: React.FC = () => {
         isOpen={showPriceModal}
         onClose={() => setShowPriceModal(false)}
       />
+
+      {/* Cancel Booking Modal */}
+      {cancellingBooking && (
+        <CancelBookingModal
+          isOpen={!!cancellingBooking}
+          onClose={() => setCancellingBooking(null)}
+          booking={cancellingBooking}
+          onSuccess={() => {
+            refetchBookings();
+          }}
+        />
+      )}
     </div>
   );
 };

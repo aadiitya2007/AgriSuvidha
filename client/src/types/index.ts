@@ -125,6 +125,10 @@ export interface Booking {
   activeOtp?: string;
   activeQr?: string;
   procurementRecord?: ProcurementRecord;
+  isCancellable?: boolean;
+  cancellationDeadline?: string | null;
+  cancellationBlockedReason?: string | null;
+  cancellationReason?: string | null;
 }
 
 export interface QueueEntry {

@@ -93,36 +93,55 @@ function getMockFallback(endpoint: string, options: RequestInit = {}): any {
     ];
   }
 
-  if (endpoint.startsWith('/bookings/my-bookings') || endpoint === '/bookings') {
-    return [
-      {
-        id: 'b-1',
-        bookingReference: 'KS-2026-NGP-001',
-        centreId: 'centre-1',
-        centre: {
-          name: 'Nagpur APMC Procurement Hub',
-          district: 'Nagpur',
-          state: 'Maharashtra',
-          address: 'Kalamna Market Yard, Ring Road, Nagpur',
-        },
-        commodityName: 'Soyabean',
-        quantityQuintals: 50.0,
-        vehicleNumber: 'MH 31 AG 4412',
-        vehicleType: 'Tractor Trolley',
-        slotDate: todayStr,
-        slotTime: '09:00 - 11:00 AM',
-        status: 'CONFIRMED',
-        qrPassCode: 'PASS-KS-2026-NGP-001',
-        entryOtp: '123456',
-        tokenDisplay: 'TK-001',
-        queuePosition: 2,
-        estimatedWaitMinutes: 14,
-        checkedInAt: null,
+  const mockBookings: any[] = [
+    {
+      id: 'b-1',
+      bookingReference: 'KS-2026-NGP-001',
+      centreId: 'centre-1',
+      centre: {
+        name: 'Nagpur APMC Procurement Hub',
+        district: 'Nagpur',
+        state: 'Maharashtra',
+        address: 'Kalamna Market Yard, Ring Road, Nagpur',
       },
-    ];
+      commodity: {
+        id: 'c-1',
+        name: 'Soyabean',
+        code: 'SOY-01',
+        minMspPrice: 4892,
+        unit: 'Quintal',
+      },
+      commodityName: 'Soyabean',
+      quantityQuintals: 50.0,
+      estimatedQuantity: 50.0,
+      vehicleNumber: 'MH 31 AG 4412',
+      vehicleType: 'Tractor Trolley',
+      slot: {
+        id: 'slot-1',
+        slotDate: todayStr,
+        startTime: '09:00 AM',
+        endTime: '11:00 AM',
+      },
+      slotDate: todayStr,
+      slotTime: '09:00 - 11:00 AM',
+      status: 'CONFIRMED',
+      isCancellable: true,
+      qrPassCode: 'PASS-KS-2026-NGP-001',
+      activeQr: 'PASS-KS-2026-NGP-001',
+      entryOtp: '123456',
+      activeOtp: '123456',
+      tokenDisplay: 'TK-001',
+      queuePosition: 2,
+      estimatedWaitMinutes: 14,
+      checkedInAt: null,
+    },
+  ];
+
+  if (endpoint.startsWith('/bookings/my-bookings') || endpoint === '/bookings') {
+    return mockBookings;
   }
 
-let mockQueueEntries = [
+let mockQueueEntries: any[] = [
   {
     id: 'q-1',
     tokenNumber: 1,
@@ -452,6 +471,19 @@ let mockProcurementRecords: any[] = [
     };
   }
 
+  if (endpoint.includes('/cancel')) {
+    const parts = endpoint.split('/');
+    const bookingId = parts[2];
+    const bIndex = mockBookings.findIndex((b) => b.id === bookingId);
+    if (bIndex >= 0) {
+      mockBookings[bIndex].status = 'CANCELLED';
+    }
+    return {
+      success: true,
+      message: 'Booking cancelled successfully. Allocated slot capacity released.',
+    };
+  }
+
   return { success: true, message: 'Simulated operation completed successfully.' };
 }
 
@@ -538,3 +570,9 @@ export async function apiRequest<T = any>(
   }
 }
 
+export async function cancelBookingApi(bookingId: string, reason?: string) {
+  return apiRequest(`/bookings/${bookingId}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}

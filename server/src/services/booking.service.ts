@@ -4,6 +4,36 @@ import { BookingStatus, QueueStatus, TokenType, NotificationCategory } from '@pr
 import { generateNumericOtp, hashValue, signQrToken } from '../utils/crypto';
 import { notificationService } from './notification.service';
 import { logger } from '../utils/logger';
+import { sseManager } from '../utils/sse';
+
+export function parseSlotDateTime(slotDate: string, startTime: string): Date | null {
+  try {
+    if (!slotDate || !startTime) return null;
+    const dateMatch = slotDate.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!dateMatch) return null;
+    const year = parseInt(dateMatch[1], 10);
+    const month = parseInt(dateMatch[2], 10) - 1;
+    const day = parseInt(dateMatch[3], 10);
+
+    const timeMatch = startTime.trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+    if (!timeMatch) return null;
+
+    let hours = parseInt(timeMatch[1], 10);
+    const minutes = parseInt(timeMatch[2], 10);
+    const meridiem = timeMatch[3]?.toUpperCase();
+
+    if (meridiem === 'PM' && hours < 12) {
+      hours += 12;
+    } else if (meridiem === 'AM' && hours === 12) {
+      hours = 0;
+    }
+
+    const d = new Date(year, month, day, hours, minutes, 0, 0);
+    return isNaN(d.getTime()) ? null : d;
+  } catch {
+    return null;
+  }
+}
 
 export class BookingService {
   async getAvailableSlots(centreId: string, commodityId: string, dateStr: string) {
@@ -243,10 +273,47 @@ export class BookingService {
     return bookings.map((b) => {
       const otpToken = b.verificationTokens.find((t) => t.tokenType === TokenType.COLLECTION_OTP && !t.isUsed);
       const qrToken = b.verificationTokens.find((t) => t.tokenType === TokenType.COLLECTION_QR && !t.isUsed);
+
+      // Compute cancellation eligibility
+      let isCancellable = false;
+      let cancellationDeadline: string | null = null;
+      let cancellationBlockedReason: string | null = null;
+
+      if (b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.PENDING) {
+        if (b.slot?.slotDate && b.slot?.startTime) {
+          const slotDateTime = parseSlotDateTime(b.slot.slotDate, b.slot.startTime);
+          if (slotDateTime) {
+            const deadline = new Date(slotDateTime.getTime() - 2 * 60 * 60 * 1000);
+            cancellationDeadline = deadline.toISOString();
+            const now = new Date();
+            if (now >= slotDateTime) {
+              isCancellable = false;
+              cancellationBlockedReason = 'Scheduled arrival slot time has already started or passed';
+            } else if (now >= deadline) {
+              isCancellable = false;
+              const minsLeft = Math.max(0, Math.round((slotDateTime.getTime() - now.getTime()) / 60000));
+              cancellationBlockedReason = `Locked: Within 2 hrs of arrival (${minsLeft}m remaining)`;
+            } else {
+              isCancellable = true;
+            }
+          } else {
+            isCancellable = true;
+          }
+        } else {
+          isCancellable = true;
+        }
+      } else {
+        isCancellable = false;
+        cancellationBlockedReason = `Booking is ${b.status.toLowerCase().replace('_', ' ')}`;
+      }
+
       return {
         ...b,
         activeOtp: otpToken ? otpToken.displayCode : null,
         activeQr: qrToken ? qrToken.displayCode : null,
+        isCancellable,
+        cancellationDeadline,
+        cancellationBlockedReason,
       };
     });
   }
@@ -274,36 +341,78 @@ export class BookingService {
   }
 
   async cancelBooking(bookingId: string, farmerId: string, reason?: string) {
-    return await prisma.$transaction(async (tx) => {
-      const booking = await tx.booking.findUnique({
-        where: { id: bookingId },
-        include: { slot: true },
-      });
+    const existing = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { slot: true, centre: true, commodity: true },
+    });
 
-      if (!booking) {
-        throw new AppError('Booking not found', 404, 'BOOKING_NOT_FOUND');
+    if (!existing) {
+      throw new AppError('Booking not found', 404, 'BOOKING_NOT_FOUND');
+    }
+
+    if (existing.farmerId !== farmerId) {
+      throw new AppError('Unauthorized: You do not own this booking', 403, 'FORBIDDEN');
+    }
+
+    if (existing.status === BookingStatus.CANCELLED) {
+      throw new AppError('Booking is already cancelled', 400, 'ALREADY_CANCELLED');
+    }
+
+    if (existing.status === BookingStatus.CHECKED_IN) {
+      throw new AppError('Cannot cancel booking: You have already checked in at the procurement centre.', 400, 'ALREADY_CHECKED_IN');
+    }
+
+    if (existing.status === BookingStatus.COMPLETED) {
+      throw new AppError('Cannot cancel booking: Harvest procurement has already been completed.', 400, 'ALREADY_COMPLETED');
+    }
+
+    if (existing.status !== BookingStatus.CONFIRMED && existing.status !== BookingStatus.PENDING) {
+      throw new AppError(`Cannot cancel booking with current status: ${existing.status}`, 400, 'INVALID_STATUS');
+    }
+
+    // Time-based 2-hour cut-off validation
+    if (existing.slot?.slotDate && existing.slot?.startTime) {
+      const slotDateTime = parseSlotDateTime(existing.slot.slotDate, existing.slot.startTime);
+      if (slotDateTime) {
+        const now = new Date();
+        if (now >= slotDateTime) {
+          throw new AppError(
+            'Cannot cancel booking: Scheduled arrival slot time has already started or passed.',
+            400,
+            'SLOT_ALREADY_PASSED'
+          );
+        }
+
+        const cutoffTime = new Date(slotDateTime.getTime() - 2 * 60 * 60 * 1000); // 2 hours prior
+        if (now >= cutoffTime) {
+          const diffMinutes = Math.max(0, Math.round((slotDateTime.getTime() - now.getTime()) / 60000));
+          throw new AppError(
+            `Cancellation window closed: Bookings cannot be cancelled within 2 hours of arrival slot (starts in ${diffMinutes} minutes) to prevent mandi logistics disruption. Contact helpline 1800-180-1551.`,
+            400,
+            'CANCELLATION_CUTOFF_EXPIRED'
+          );
+        }
       }
+    }
 
-      if (booking.farmerId !== farmerId) {
-        throw new AppError('Unauthorized: You do not own this booking', 403, 'FORBIDDEN');
-      }
-
-      if (booking.status !== BookingStatus.CONFIRMED && booking.status !== BookingStatus.PENDING) {
-        throw new AppError(`Cannot cancel booking with status: ${booking.status}`, 400, 'INVALID_STATUS');
-      }
-
+    const updatedBooking = await prisma.$transaction(async (tx) => {
       // Decrement slot booked capacity
       await tx.slot.update({
-        where: { id: booking.slotId },
+        where: { id: existing.slotId },
         data: { bookedCapacity: { decrement: 1 } },
       });
 
-      // Update booking
+      // Update booking status
       const updated = await tx.booking.update({
         where: { id: bookingId },
         data: {
           status: BookingStatus.CANCELLED,
           cancellationReason: reason || 'Cancelled by farmer',
+        },
+        include: {
+          centre: true,
+          commodity: true,
+          slot: true,
         },
       });
 
@@ -327,12 +436,39 @@ export class BookingService {
           action: 'SLOT_CANCELLED',
           resourceType: 'BOOKING',
           resourceId: bookingId,
-          metadata: JSON.stringify({ reason }),
+          metadata: JSON.stringify({
+            reason: reason || 'Cancelled by farmer',
+            slotDate: existing.slot?.slotDate,
+            startTime: existing.slot?.startTime,
+          }),
         },
       });
 
       return updated;
     });
+
+    // Send notification to farmer
+    await notificationService.sendNotification({
+      userId: farmerId,
+      title: 'Slot Booking Cancelled',
+      body: `Your procurement slot for ${updatedBooking.commodity.name} at ${updatedBooking.centre.name} scheduled for ${updatedBooking.slot.slotDate} (${updatedBooking.slot.startTime}) has been cancelled. Capacity has been released.`,
+      category: NotificationCategory.SLOT,
+      actionUrl: '/dashboard',
+    });
+
+    // Broadcast SSE to centre and global queue
+    sseManager.broadcastToCentre(updatedBooking.centreId, 'QUEUE_UPDATE', {
+      action: 'BOOKING_CANCELLED',
+      bookingId: updatedBooking.id,
+      slotId: updatedBooking.slotId,
+    });
+    sseManager.broadcastGlobal('QUEUE_UPDATE', {
+      action: 'BOOKING_CANCELLED',
+      bookingId: updatedBooking.id,
+      centreId: updatedBooking.centreId,
+    });
+
+    return updatedBooking;
   }
 
   async rescheduleBooking(bookingId: string, farmerId: string, newSlotId: string) {
