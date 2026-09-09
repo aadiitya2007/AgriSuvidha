@@ -4,10 +4,10 @@ import swaggerUi from 'swagger-ui-express';
 const openApiSpec = {
   openapi: '3.0.0',
   info: {
-    title: 'KrishiSetu API Documentation',
+    title: 'AgriSuvidha API Documentation',
     version: '1.0.0',
     description:
-      'Production REST API for KrishiSetu Digital Farmer Procurement and Collection Platform (Problem Statement SHI26032).',
+      'Production REST API for AgriSuvidha Digital Farmer Procurement and Collection Platform (Problem Statement SIH26032).',
   },
   servers: [{ url: '/api/v1', description: 'Version 1 API Endpoint' }],
   components: {

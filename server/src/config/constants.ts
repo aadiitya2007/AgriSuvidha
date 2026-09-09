@@ -1,7 +1,7 @@
 export const CONSTANTS = {
-  APP_NAME: 'KrishiSetu',
+  APP_NAME: 'AgriSuvidha',
   VERSION: '1.0.0',
-  PROBLEM_STATEMENT: 'SHI26032',
+  PROBLEM_STATEMENT: 'SIH26032',
   
   // Rate limiting
   RATE_LIMITS: {

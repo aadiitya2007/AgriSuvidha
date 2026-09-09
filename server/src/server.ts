@@ -15,7 +15,7 @@ async function startServer() {
     // 3. Start HTTP server
     const server = app.listen(ENV.PORT, () => {
       logger.info(`=======================================================`);
-      logger.info(` KrishiSetu API Server running on port ${ENV.PORT}`);
+      logger.info(` AgriSuvidha API Server running on port ${ENV.PORT}`);
       logger.info(` Health check: http://localhost:${ENV.PORT}/health`);
       logger.info(` Readiness:    http://localhost:${ENV.PORT}/ready`);
       logger.info(` API Docs:     http://localhost:${ENV.PORT}/api/docs`);

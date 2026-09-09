@@ -51,7 +51,7 @@ export const PaymentLedgerPage: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `krishisetu-payments-${Date.now()}.csv`;
+      a.download = `agrisuvidha-payments-${Date.now()}.csv`;
       a.click();
     } catch (err: any) {
       alert('Failed to export CSV: ' + err.message);

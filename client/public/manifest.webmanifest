@@ -1,7 +1,7 @@
 {
-  "name": "KrishiSetu - Farmer Procurement Platform",
-  "short_name": "KrishiSetu",
-  "description": "Digital Farmer Procurement and Collection Platform",
+  "name": "AgriSuvidha - Farmer Procurement Platform",
+  "short_name": "AgriSuvidha",
+  "description": "AgriSuvidha Digital Farmer Procurement and Collection Platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

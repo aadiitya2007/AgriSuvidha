@@ -37,7 +37,7 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     status: 'UP',
     timestamp: new Date().toISOString(),
-    service: 'KrishiSetu API',
+    service: 'AgriSuvidha API',
     version: '1.0.0',
   });
 });

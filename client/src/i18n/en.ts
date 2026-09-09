@@ -23,7 +23,7 @@ export const en = {
     statVolume: '45,000+ Tonnes Procured',
     statPayments: '₹98.5 Cr Disbursed via DBT',
     statCentres: '100% Digital Weighing',
-    featuresTitle: 'Why Farmers Trust KrishiSetu',
+    featuresTitle: 'Why Farmers Trust AgriSuvidha',
     feature1Title: 'Guaranteed Time Slots',
     feature1Desc: 'Book slots online from your phone. Eliminate days of tractor queueing outside mandi gates.',
     feature2Title: 'Live Queue Token Tracking',

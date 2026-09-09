@@ -59,7 +59,7 @@ export const Footer: React.FC = () => {
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-300">
               <Mail className="w-4 h-4 text-emerald-500" />
-              <span>support@krishisetu.gov.in</span>
+              <span>support@agrisuvidha.gov.in</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-300">
               <MapPin className="w-4 h-4 text-emerald-500" />

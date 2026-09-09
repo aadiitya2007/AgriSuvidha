@@ -128,7 +128,7 @@ export const DigitalReceiptModal: React.FC<DigitalReceiptModalProps> = ({
               </p>
             </div>
             <div className="text-center">
-              <QRCodeSVG value={`https://krishisetu.gov.in/verify/receipt/${record.receiptNumber}`} size={64} />
+              <QRCodeSVG value={`https://agrisuvidha.gov.in/verify/receipt/${record.receiptNumber}`} size={64} />
               <span className="text-[9px] text-slate-400 block mt-1">Scan to Verify</span>
             </div>
           </div>
