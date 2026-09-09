@@ -4,7 +4,7 @@
 FROM node:20-alpine AS client-builder
 WORKDIR /app/client
 COPY client/package*.json ./
-RUN npm ci --silent
+RUN npm install
 COPY client/ ./
 RUN npm run build
 
@@ -13,7 +13,7 @@ FROM node:20-alpine AS server-builder
 WORKDIR /app/server
 COPY server/package*.json ./
 COPY server/prisma ./prisma/
-RUN npm ci --silent
+RUN npm install
 COPY server/ ./
 RUN npx prisma generate
 RUN npm run build
@@ -29,7 +29,7 @@ RUN apk add --no-cache openssl
 
 # Copy server artifacts
 COPY server/package*.json ./
-RUN npm ci --only=production --silent
+RUN npm install --omit=dev
 COPY --from=server-builder /app/server/dist ./dist
 COPY --from=server-builder /app/server/prisma ./prisma
 COPY --from=server-builder /app/server/node_modules/.prisma ./node_modules/.prisma
