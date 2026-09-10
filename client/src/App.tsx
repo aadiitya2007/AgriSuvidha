@@ -9,6 +9,7 @@ import { Footer } from './components/Footer';
 import { DemoCredentialsBar } from './components/DemoCredentialsBar';
 import { OfflineBanner } from './components/OfflineBanner';
 import { IncidentAlertBanner } from './components/IncidentAlertBanner';
+import { NotificationToastContainer } from './components/NotificationToastContainer';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';
@@ -73,6 +74,7 @@ export const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       <DemoCredentialsBar />
+      <NotificationToastContainer />
       <OfflineBanner />
       <IncidentAlertBanner />
       {!isAdminRoute && <Navbar />}

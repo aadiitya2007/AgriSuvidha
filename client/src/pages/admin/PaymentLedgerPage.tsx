@@ -15,9 +15,11 @@ import {
   ShieldCheck,
   RotateCw,
 } from 'lucide-react';
+import { useNotifications } from '../../context/NotificationContext';
 
 export const PaymentLedgerPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const { showToast } = useNotifications();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const { data: payments = [], isLoading, refetch } = useQuery<Payment[]>({
@@ -35,7 +37,14 @@ export const PaymentLedgerPage: React.FC = () => {
         body: JSON.stringify({ paymentId, paymentMode: 'DIRECT_BENEFIT_TRANSFER' }),
       }),
     onSuccess: (data) => {
-      setStatusMessage(`Payment of ₹${data.amount.toLocaleString('en-IN')} disbursed! UTR: ${data.transactionReference}`);
+      const msg = `Payment of ₹${data.amount.toLocaleString('en-IN')} disbursed! UTR: ${data.transactionReference}`;
+      setStatusMessage(msg);
+      showToast({
+        title: `DBT Payment Disbursed: ₹${data.amount.toLocaleString('en-IN')}`,
+        body: `Direct Benefit Transfer of ₹${data.amount.toLocaleString('en-IN')} completed. UTR Reference: ${data.transactionReference}`,
+        category: 'PAYMENT',
+        actionUrl: '/admin/payments',
+      });
       queryClient.invalidateQueries({ queryKey: ['admin-payments'] });
       setTimeout(() => setStatusMessage(null), 5000);
     },

@@ -27,7 +27,7 @@ import {
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const { t } = useLanguage();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, showToast } = useNotifications();
   const location = useLocation();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -144,6 +144,26 @@ export const Navbar: React.FC = () => {
                           </button>
                         )}
                       </div>
+                      <div className="px-3 pt-2 pb-1.5 border-b border-slate-100 bg-slate-50/70">
+                        <button
+                          onClick={() => {
+                            setNotifDropdownOpen(false);
+                            showToast({
+                              title: 'DBT Payment Disbursed: ₹48,500',
+                              body: 'Direct Benefit Transfer of ₹48,500 successfully transferred to State Bank of India A/C ****4821. UTR: SBIN26253901928.',
+                              category: 'PAYMENT',
+                              actionUrl: '/procurements',
+                            });
+                          }}
+                          className="w-full text-left px-2.5 py-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-100/70 hover:bg-emerald-200/80 rounded-lg flex items-center justify-between border border-emerald-300 transition-colors cursor-pointer"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-spin" style={{ animationDuration: '3s' }} />
+                            Test DBT Payment Pop-up
+                          </span>
+                          <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded font-mono font-semibold">Demo</span>
+                        </button>
+                      </div>
                       <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
                         {notifications.length === 0 ? (
                           <p className="p-4 text-center text-xs text-slate-400">No new alerts.</p>
@@ -151,7 +171,16 @@ export const Navbar: React.FC = () => {
                           notifications.slice(0, 8).map((n) => (
                             <div
                               key={n.id}
-                              onClick={() => markAsRead(n.id)}
+                              onClick={() => {
+                                markAsRead(n.id);
+                                showToast({
+                                  id: n.id,
+                                  title: n.title,
+                                  body: n.body,
+                                  category: n.category,
+                                  actionUrl: n.actionUrl,
+                                });
+                              }}
                               className={`p-3 text-xs hover:bg-slate-50 cursor-pointer transition-colors ${
                                 !n.isRead ? 'bg-emerald-50/60 font-medium' : ''
                               }`}
