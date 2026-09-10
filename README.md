@@ -150,5 +150,7 @@ Duration    ~500ms
 
 ---
 
+## Prototype video link: https://drive.google.com/drive/folders/1IYtrT_d_a6xdQW8tmHm1AeBaZfUb1WdP?usp=sharing
+
 ## 👥 Team Innov8ors (SIH 2026)
 Developed with ❤️ for the Indian agricultural community.
